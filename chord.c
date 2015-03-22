@@ -281,6 +281,24 @@
 	return 0;
    }
 
+/* ========================================================================
+		NODE_CONSTRUCTOR FUNCTION
+   ========================================================================
+*/
+
+   /*
+   *
+   * Node constructor
+   *
+   */
+
+   Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash){
+   	Node_id node;
+   	node.ip = ip;
+   	node.port = port;
+   	node.pos = hash;
+   	return node;
+   }
 
 
 /* ========================================================================
@@ -298,13 +316,12 @@
    		exit(1);
    	}
 
-   	uint16_t myPort;
+   	uint16_t myPort = atoi(argv[1]);
    	char * myIP = findMyIP();
    	Predecessor_t Predecessors[2];
-   
+	Finger_t Fingers[32];   
 
    	if (argc == 2) {
-   		myPort = atoi(argv[1]);
    		//do n.join where i'm the only node
 
    		//find my Chord ID
@@ -313,36 +330,53 @@
    		strcpy(toHash, myIP);
    		strcat(toHash, s2);
    		uint32_t myHash = giveHash(toHash);
+   		fprintf(stderr, "My chord id is: %u\n", myHash);
 
    		//make a Node_id of myself
-   		Node_id myself;
-   		myself.ip = myIP;
-   		myself.port = myPort;
-   		myself.pos = myHash;
-
+   		Node_id myself = nodeConstructor(myIP, myPort, myHash);
+   		
    		//initialize Predecessors and Finger Table
    		Predecessors[1].pNode_id = myself;
    		Predecessors[2].pNode_id = myself;
 
-   		Finger_t Fingers[32];
    		int i;
 		for (i = 0; i <= 31; i++){
 				Fingers[i].node = myself;
-
 				uint32_t offset;
 				offset = 1 << i;
 				Fingers[i].start = myself.pos + offset; 
 			}
-   		for (i = 0; i <= 31; i++){
-   			fprintf(stderr, "The value of Fingers[%d] is: %u\n", i, Fingers[i].node.pos);
-   		}
-   		fprintf(stderr, "My chord id is: %u\n", myself.pos);
+
    	}
 
-   	if (argc == 3){
-   		char * remote_IP = argv[1];
-   		uint16_t remote_Port = atoi(argv[2]);
+   	if (argc == 4){
+   		char * remote_IP = argv[2];
+   		uint16_t remote_Port = atoi(argv[3]);
    		//do n.join with a remote node
+
+   		//find my Chord ID
+   		char * s2 = argv[1]; // this is just our port
+   		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
+   		strcpy(toHash, myIP);
+   		strcat(toHash, s2);
+   		uint32_t myHash = giveHash(toHash);
+
+   		fprintf(stderr, "My chord id is: %u\n", myHash);
+
+   		//make a Node_id of myself 
+   		Node_id myself = nodeConstructor(myIP, myPort, myHash);
+
+   		//blank my fingers
+   		int i;
+   		for (i = 0; i <= 31; i++){
+   			uint32_t offset;
+   			offset = 1 << i;
+   			Fingers[i].start = myself.pos + offset;
+   		}
+
+   		//call initfingers
+
+
    	}
 
    }

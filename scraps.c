@@ -1,3 +1,47 @@
+  
+/* ========================================================================
+      BLANK_FINGER_TABLE_CONSTRUCTOR FUNCTION
+   ========================================================================
+*/
+
+   /*
+   *
+   * Correctly initializes each Fingers[i].start
+   *
+   * Fingers[i].node remains unassigned
+   *
+   * Returns blank, 32-entry finger table
+   *
+   */
+
+
+   Finger_t blankFingers(Finger_t * Fingers, Node_id node){
+      int i;
+      for (i = 0; i <= 31; i++){
+         uint32_t offset;
+      offset = 1 << i;
+         Fingers[i].start = node.pos + offset;
+      }
+      return Fingers[32];
+   }
+
+/* ========================================================================
+      INIT_FINGER_TABLE FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   * Performs n.init_finger_table(n') from Figure 6 of Chord Paper
+   *
+   *
+   *
+   */
+
+void initFingerTable(){
+   return;
+}
+
+
    char * findMyIP()
    {
    	int fd;
