@@ -453,13 +453,17 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
 
    	}
 
-/* ================================================================
-* START LISTENING ON MY PORT
-* =================================================================
-*/
+	/* ================================================================
+	* START LISTENING ON MY PORT
+	* =================================================================
+	*/
 	listenfd = Open_listenfd(myPort);
 	optval = 1;
-	setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int)); 
+	if ( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int)) < 0 ){
+		fprintf(stderr, "Error on line: %d\n", __LINE__);
+		perror("Error: ");
+		return -1;
+	}
 
 	while(1){
 		clientlen = sizeof(clientaddr);
@@ -469,10 +473,13 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
 			newargv[0] = connfd;
 			newargv[1] = myPort;
 			Pthread_create(&tid, NULL, threadFactory, newargv);
+			Pthread_detach(tid); //frees tid so we can make the next thread
 		}
 
 	}
 
+	sleep(5); //in case any thread-scheduling weirdness is happening
+	return 0; //exit main
    }
 
    void *threadFactory(void* args){
