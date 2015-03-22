@@ -18,6 +18,9 @@
 #include <unistd.h> //who knows?
 #include <stdlib.h> //standard sounds good
 
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <net/if.h>
 
 #define MAX_HEADER 8192
 #define KEEP_ALIVE 0
@@ -210,4 +213,76 @@ uint32_t giveHash(char * preImage)
    		image = image ^ intermediate;
    	}
    	return image;
+   }
+
+
+/* ========================================================================
+		FIND_MY_IP FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   * Finds the IPv4 address of the local node
+   * Assumes machine has only one non-loopback address on en1
+   *
+   * Returns IPv4 in ASCII format
+   *
+   * Note: eth0 = first physical ethernet device on Linux
+   * en0 = physical wired device on OSX
+   * en1 = physical wifi device on OSX
+   *
+   */
+
+   char * findMyIP()
+   {
+   	int fd;
+   	struct ifreq ifr;
+
+   	fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+ 	/* I want to get an IPv4 IP address */
+   	ifr.ifr_addr.sa_family = AF_INET;
+
+ 	/* I want IP address attached to "en1" */
+   	strncpy(ifr.ifr_name, "en1", IFNAMSIZ-1);
+
+   	ioctl(fd, SIOCGIFADDR, &ifr);
+
+   	close(fd);
+
+   	return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+
+   }
+
+
+
+/* ========================================================================
+   ========================================================================
+		MAIN FUNCTION
+   ========================================================================
+   ========================================================================
+*/
+
+   int main(int argc, char *argv[])
+   {
+   	uint16_t myPort;
+
+   	if (argc < 2) {
+   		printf("Usage: %s port OR %s [IP Address] [remote port]\n", argv[0], argv[0]);
+   		exit(1);
+   	}
+
+   	//find out my IP address
+
+   	if (argc == 2) {
+   		myPort = argv[1];
+   		//do n.join where i'm the only node
+   	}
+
+   	if (argc == 3){
+   		char * remote_IP = argv[1];
+   		uint16_t remote_Port = argv[2];
+   		//do n.join with a remote node
+   	}
+
    }
