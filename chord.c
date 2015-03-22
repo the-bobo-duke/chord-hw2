@@ -265,18 +265,24 @@ uint32_t giveHash(char * preImage)
 
    int main(int argc, char *argv[])
    {
-   	uint16_t myPort;
-
+   	
    	if (argc < 2) {
    		printf("Usage: %s port OR %s [IP Address] [remote port]\n", argv[0], argv[0]);
    		exit(1);
    	}
 
-   	//find out my IP address
+	uint16_t myPort;
+   	char * myIP = findMyIP();
+
 
    	if (argc == 2) {
-   		myPort = argv[1];
+   		myPort = atoi(argv[1]);
    		//do n.join where i'm the only node
+   		char * s2 = argv[1];
+   		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
+   		strcpy(toHash, myIP);
+   		strcat(toHash, s2);
+   		uint32_t myHash = giveHash(toHash);
    	}
 
    	if (argc == 3){

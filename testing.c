@@ -28,64 +28,74 @@
 #define PRED_REQ 8
 #define PRED_REPLY 9
 
-   uint32_t giveHash(char * preImage)
-   {
-   	uint32_t image = 0;
-   	uint32_t intermediate = 0;
-   	
+uint32_t giveHash(char * preImage)
+{
+	uint32_t image = 0;
+	uint32_t intermediate = 0;
+
    	//get SHA-1 of preImage
-   	size_t length = sizeof(preImage);
-   	unsigned char hash[SHA_DIGEST_LENGTH];
-   	SHA1(preImage, length, hash);
-   	int i;
-   	for (i = 0; i < sizeof(hash); i+=4){
-   		intermediate = memcpy(&image, (void*) (hash+i), 4);
-   		image = image ^ intermediate;
-   	}
-   	return image;
-   }
+	size_t length = sizeof(preImage);
+	unsigned char hash[SHA_DIGEST_LENGTH];
+	SHA1(preImage, length, hash);
+	int i;
+	for (i = 0; i < sizeof(hash); i+=4){
+		intermediate = memcpy(&image, (void*) (hash+i), 4);
+		image = image ^ intermediate;
+	}
+	return image;
+}
 
 
-   char * findMyIP()
-   {
-   	int fd;
-   	struct ifreq ifr;
+char * findMyIP()
+{
+	int fd;
+	struct ifreq ifr;
 
-   	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
 
  	/* I want to get an IPv4 IP address */
-   	ifr.ifr_addr.sa_family = AF_INET;
+	ifr.ifr_addr.sa_family = AF_INET;
 
  	/* I want IP address attached to "eth0" */
-   	strncpy(ifr.ifr_name, "en1", IFNAMSIZ-1);
+	strncpy(ifr.ifr_name, "en1", IFNAMSIZ-1);
 
-   	ioctl(fd, SIOCGIFADDR, &ifr);
+	ioctl(fd, SIOCGIFADDR, &ifr);
 
-   	close(fd);
+	close(fd);
 
-   	return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+	return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
-   }
+}
 
-int main()
+
+int main(int argc, char *argv[])
 {
-	/*
-	printf("Program beginning \n");
-	printf("Let's find the Chord ID for the string: 192.154.34.23 8004\n");
-	char * our_string = "192.154.34.23 8004";
-	uint32_t chord_id = giveHash(our_string);
-	long long int tester = 1;
-	tester = tester << 32;
-	fprintf(stderr, "The Chord ID is: %u\n", chord_id);
-	if (chord_id < tester){
-		printf("it's an unsigned int\n");
-	}
-	*/
 
-	printf("Program beginning\n");
-	printf("Let's find our IP address: \n");
-	char * toprint = findMyIP();
-	printf("My IP is: %s\n", toprint);
+	if (argc < 2) {
+		printf("Usage: %s port OR %s [IP Address] [remote port]\n", argv[0], argv[0]);
+		exit(1);
+	}
+
+	uint16_t myPort;
+	char * myIP = findMyIP();
+	long long tester = 1;
+	tester = tester << 32;
+
+	if (argc == 2) {
+		myPort = atoi(argv[1]);
+   		//do n.join where i'm the only node
+		char * s2 = argv[1];
+		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
+		strcpy(toHash, myIP);
+		strcat(toHash, s2);
+		uint32_t myHash = giveHash(toHash);
+		fprintf(stderr, "My Chord ID is: %u\n", myHash);
+		fprintf(stderr, "My port is: %d\n", myPort);
+		fprintf(stderr, "My IP is: %s\n", myIP);
+		if (myHash < tester){
+			fprintf(stderr, "Still a uint32\n");
+		}
+	}
 
 	return 0;
 }
