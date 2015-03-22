@@ -281,6 +281,17 @@
 	return 0;
    }
 
+
+
+/* ========================================================================
+   ========================================================================
+		HELPER FUNCTIONS
+   ========================================================================
+   ========================================================================
+*/
+
+
+
 /* ========================================================================
 		NODE_CONSTRUCTOR FUNCTION
    ========================================================================
@@ -299,6 +310,42 @@
    	node.pos = hash;
    	return node;
    }
+
+
+/* ========================================================================
+      INIT_FINGER_TABLE FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   * Performs n.init_finger_table(n') from Figure 6 of Chord Paper
+   *
+   * Needs: find_successor; update_entry; whois_your_predecessor;
+   *
+   */
+
+void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by reference
+/*
+	Fingers[0].node = ask n-prime to find_successor(Fingers[1].start);
+	set my predecessor to the predecessor of my successor;
+	tell my successor that i am its new predecessor;
+	int i;
+	for (i = 0; i <= 31; i++){
+		if (n <= Fingers[i+1].start < Fingers[i].node){
+			Fingers[i+1].node = Fingers[i].node;
+		}
+		else{
+			Fingers[i+1].node = ask n-prime to find_successor(Fingers[i+1].start);
+		}
+	}
+*/
+	int i = 0;
+	for (i = 0; i <= 31; i++){
+		fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
+	}
+   //return Fingers;
+   //if not void, needs to return pointer to first element of array of structs
+}
 
 
 /* ========================================================================
@@ -375,6 +422,7 @@
    		}
 
    		//call initfingers
+   		initFingerTable(Fingers);
 
 
    	}
