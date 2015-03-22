@@ -188,7 +188,7 @@
 */
    /*
    *
-   * Acecpts a string to produce a SHA-1 hash of
+   * Acecpts a string to produce a SHA-1 hash
    *
    * Returns a 4-byte uint32_t that is the bitwise  
    * XOR of each 4-byte chunk of the SHA-1 hash
@@ -196,6 +196,8 @@
    * This is equivalent to the position on our 32-bit 
    * chord ring
    *
+   * Verified to consistently produce same output on same inputs
+   * 
    */
 
    uint32_t giveHash(char * preImage)
@@ -274,7 +276,7 @@
 	if (ifAddrStruct!=NULL) {
 		freeifaddrs(ifAddrStruct);
 	}
-	
+
 	return 0;
    }
 
@@ -297,16 +299,31 @@
 
    	uint16_t myPort;
    	char * myIP = findMyIP();
-
+   	Predecessor_t Predecessors[2];
+   
 
    	if (argc == 2) {
    		myPort = atoi(argv[1]);
    		//do n.join where i'm the only node
+
+   		//find my Chord ID
    		char * s2 = argv[1];
    		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
    		strcpy(toHash, myIP);
    		strcat(toHash, s2);
    		uint32_t myHash = giveHash(toHash);
+
+   		//make a Node_id of myself
+   		Node_id myself;
+   		myself.ip = myIP;
+   		myself.port = myPort;
+   		myself.pos = myHash;
+
+   		//initialize Predecessors and Finger Table
+   		Predecessors[1].pNode_id = myself;
+   		Predecessors[2].pNode_id = myself;
+   		
+
    	}
 
    	if (argc == 3){

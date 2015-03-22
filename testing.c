@@ -29,6 +29,32 @@
 #define PRED_REQ 8
 #define PRED_REPLY 9
 
+/* ========================================================================
+		NODE_ID STRUCT
+   ========================================================================
+*/
+   typedef struct Node_id {
+   	char * ip; //IPv4 or IPv6 address in ASCII format. will need inet_addr() or inet_aton() to cast it
+   	uint16_t port;
+   	uint32_t pos; //position on our 32-bit ring
+   } Node_id;
+
+
+
+/* ========================================================================
+		PREDECESSOR STRUCT
+   ========================================================================
+*/
+   typedef struct Predecessor_t {
+   	Node_id pNode_id; //holds a predecessor node
+   } Predecessor_t;
+/*
+   on startup do: 
+   struct Predecessor_t Predecessors[2];
+   Predecessors[1] = some Node_id;
+   Predecessors[2] = some other Node_id;
+ */
+
 uint32_t giveHash(char * preImage)
 {
 	uint32_t image = 0;
@@ -128,6 +154,7 @@ int main(int argc, char *argv[])
 	char * myIP = findMyIP();
 	long long tester = 1;
 	tester = tester << 32;
+	Predecessor_t Predecessors[2];
 
 	if (argc == 2) {
 		myPort = atoi(argv[1]);
@@ -145,6 +172,17 @@ int main(int argc, char *argv[])
 		if (myHash < tester){
 			fprintf(stderr, "Still a uint32\n");
 		}
+
+   		//make a Node_id of myself
+   		Node_id myself;
+   		myself.ip = myIP;
+   		myself.port = myPort;
+   		myself.pos = myHash;
+
+   		//initialize Predecessors and Finger Table
+   		Predecessors[1].pNode_id = myself;
+   		Predecessors[2].pNode_id = myself;
+   		fprintf(stderr, "Chord ID of predecessor 1 is: %u\n", Predecessors[1].pNode_id.pos);
 	}
 
 	return 0;

@@ -1,3 +1,5 @@
-all: 
-	gcc chord.c -lcrypto && gcc -c csapp.c
-	gcc -pthread csapp.o chord.o -o chord
+all:
+	gcc -c csapp.c
+	gcc -c chord.c
+	gcc -lcrypto -pthread csapp.o chord.o -o chord
+	
