@@ -323,8 +323,20 @@
    		//initialize Predecessors and Finger Table
    		Predecessors[1].pNode_id = myself;
    		Predecessors[2].pNode_id = myself;
-   		
 
+   		Finger_t Fingers[32];
+   		int i;
+		for (i = 0; i <= 31; i++){
+				Fingers[i].node = myself;
+
+				uint32_t offset;
+				offset = 1 << i;
+				Fingers[i].start = myself.pos + offset; 
+			}
+   		for (i = 0; i <= 31; i++){
+   			fprintf(stderr, "The value of Fingers[%d] is: %u\n", i, Fingers[i].node.pos);
+   		}
+   		fprintf(stderr, "My chord id is: %u\n", myself.pos);
    	}
 
    	if (argc == 3){
