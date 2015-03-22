@@ -223,10 +223,13 @@ uint32_t giveHash(char * preImage)
    /*
    *
    * Finds the IPv4 address of the local node
-   * Assumes machine has only one non-loopback address on en1
+   * Assumes machine has only one non-loopback address 
    *
    * Returns IPv4 in ASCII format
    *
+   * Note: will return on first IPv4 it finds that is NOT
+   * 127.0.0.1 or 0.0.0.0
+   * 
    * Note: eth0 = first physical ethernet device on Linux
    * en0 = physical wired device on OSX
    * en1 = physical wifi device on OSX
@@ -235,24 +238,41 @@ uint32_t giveHash(char * preImage)
 
    char * findMyIP()
    {
-   	int fd;
-   	struct ifreq ifr;
+   	struct ifaddrs * ifAddrStruct=NULL;
+   	struct ifaddrs * ifa=NULL;
+   	void * tmpAddrPtr=NULL;
 
-   	fd = socket(AF_INET, SOCK_DGRAM, 0);
+   	getifaddrs(&ifAddrStruct);
 
- 	/* I want to get an IPv4 IP address */
-   	ifr.ifr_addr.sa_family = AF_INET;
+   	for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+   		if (!ifa->ifa_addr) {
+   			continue;
+   		}
+        if (ifa->ifa_addr->sa_family == AF_INET) { // check it is IP4
+            // is a valid IP4 Address
+        	tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+        	char addressBuffer[INET_ADDRSTRLEN];
+        	inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
 
- 	/* I want IP address attached to "en1" */
-   	strncpy(ifr.ifr_name, "en1", IFNAMSIZ-1);
+        	uint32_t ip1 = *(uint32_t*) &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+        	char * src2 = "127.0.0.1";
+        	uint32_t ip2;
+        	inet_pton(AF_INET, src2, &ip2);
+        	_Bool areSame = !(ip1 ^ ip2);
 
-   	ioctl(fd, SIOCGIFADDR, &ifr);
+        	char * src3 = "0.0.0.0";
+        	uint32_t ip3;
+        	inet_pton(AF_INET, src3, &ip3);
+        	_Bool areSame2 = !(ip2 ^ ip3);
 
-   	close(fd);
-
-   	return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-
-   }
+        	if ( !areSame && !areSame2) { //if they're different
+        		return addressBuffer;
+        }
+    } 
+}
+if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
+return 0;
+}
 
 
 
