@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "csapp.h"
 #include <pthread.h>
+#include <openssl/sha.h>
 
 #include <string.h> //why not?
 #include <sys/socket.h> //could be useful
@@ -168,3 +169,45 @@
    	int mtype; //must be initialized to PRED_REPLY;
    	Node_id my_predecessor;
    } Pred_Reply_m;
+
+
+/* ========================================================================
+   ========================================================================
+		UTILITY FUNCTIONS
+   ========================================================================
+   ========================================================================
+*/
+
+
+/* ========================================================================
+		HASHING FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   * Acecpts a string to produce a SHA-1 hash of
+   *
+   * Returns a 4-byte uint32_t that is the bitwise  
+   * XOR of each 4-byte chunk of the SHA-1 hash
+   *
+   * This is equivalent to the position on our 32-bit 
+   * chord ring
+   *
+   */
+
+   uint32_t giveHash(char * preImage)
+   {
+   	uint32_t image = 0;
+   	uint32_t intermediate = 0;
+   	//get SHA-1 of preImage
+   	size_t length = sizeof(preImage);
+   	unsigned char hash[SHA_DIGEST_LENGTH];
+   	SHA1(preImage, length, hash);
+   	uint32_t SHA_output = atoi(hash);
+
+   	for (int i = 0; i < 4; i++){
+   		intermediate = memcpy(&image, (void*) (output+i), 4);
+   		image = image ^ intermediate;
+   	}
+   	return image;
+   }
