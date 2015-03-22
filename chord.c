@@ -187,7 +187,7 @@ void *threadFactory(void* args);
 uint32_t giveHash(char * preImage);
 char * findMyIP();
 Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash);
-void initFingerTable(Finger_t * Fingers);
+void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port);
 
 
 /* ========================================================================
@@ -341,7 +341,14 @@ void initFingerTable(Finger_t * Fingers);
    *
    */
 
-void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by reference
+void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port){ //pass in finger table struct array by reference
+
+	// open connection to n-prime
+
+	int serverfd;
+	Open_clientfd(remote_IP, remote_Port); //Open_clientfd takes a char * for IP address
+
+
 /*
 	Fingers[0].node = ask n-prime to find_successor(Fingers[1].start);
 	set my predecessor to the predecessor of my successor;
@@ -359,7 +366,7 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
 	int i = 0;
 	for (i = 0; i <= 31; i++){
 		Fingers[i].node.pos = 35;
-		fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
+		//fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
 	}
    //return Fingers;
    //if not void, needs to return pointer to first element of array of structs
@@ -448,7 +455,7 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
    		//maybe start a thread from main that goes to a function called "thread factory"
    		//that handles our incoming connections?
    		//could do that before we initialize pointers
-   		initFingerTable(Fingers);
+   		initFingerTable(Fingers, remote_IP, remote_Port);
 
 
    	}
@@ -469,6 +476,7 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
 		clientlen = sizeof(clientaddr);
 		connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
 		if (connfd >= 0){
+			fprintf(stderr, "Accepted a connection\n");
 			int *newargv = malloc(2 * sizeof(newargv));
 			newargv[0] = connfd;
 			newargv[1] = myPort;
@@ -478,10 +486,10 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
 
 	}
 
-	sleep(5); //in case any thread-scheduling weirdness is happening
 	return 0; //exit main
    }
 
    void *threadFactory(void* args){
+   	fprintf(stderr, "In threadFactory\n");
 
    }
