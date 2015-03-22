@@ -21,6 +21,7 @@
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <ifaddrs.h>
 
 #define MAX_HEADER 8192
 #define KEEP_ALIVE 0
@@ -161,7 +162,7 @@
    ========================================================================
 */
    typedef struct Pred_Req_m{
-   	int mtype = PRED_REQ;
+   	int mtype; //must be initialized to PRED_REQ;
    } Pred_Req_m;
 
 /* ========================================================================
@@ -328,7 +329,7 @@
 
    	if (argc == 3){
    		char * remote_IP = argv[1];
-   		uint16_t remote_Port = argv[2];
+   		uint16_t remote_Port = atoi(argv[2]);
    		//do n.join with a remote node
    	}
 
