@@ -195,18 +195,18 @@
    *
    */
 
-   uint32_t giveHash(char * preImage)
+uint32_t giveHash(char * preImage)
    {
    	uint32_t image = 0;
    	uint32_t intermediate = 0;
+   	
    	//get SHA-1 of preImage
    	size_t length = sizeof(preImage);
    	unsigned char hash[SHA_DIGEST_LENGTH];
    	SHA1(preImage, length, hash);
-   	uint32_t SHA_output = atoi(hash);
-
-   	for (int i = 0; i < 4; i++){
-   		intermediate = memcpy(&image, (void*) (output+i), 4);
+   	int i;
+   	for (i = 0; i < sizeof(hash); i+=4){
+   		intermediate = memcpy(&image, (void*) (hash+i), 4);
    		image = image ^ intermediate;
    	}
    	return image;
