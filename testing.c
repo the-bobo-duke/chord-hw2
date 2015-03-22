@@ -32,15 +32,15 @@
 uint32_t giveHash(char * preImage)
 {
 	uint32_t image = 0;
-	uint32_t intermediate = 0;
 
    	//get SHA-1 of preImage
 	size_t length = sizeof(preImage);
 	unsigned char hash[SHA_DIGEST_LENGTH];
 	SHA1(preImage, length, hash);
 	int i;
-	for (i = 0; i < sizeof(hash); i+=4){
-		intermediate = memcpy(&image, (void*) (hash+i), 4);
+	for (i = 0; i < sizeof(preImage); i+=4){
+		uint32_t intermediate;
+		memcpy(&intermediate, (void*) (hash+i), 4);
 		image = image ^ intermediate;
 	}
 	return image;
@@ -57,7 +57,7 @@ char * findMyIP()
  	/* I want to get an IPv4 IP address */
 	ifr.ifr_addr.sa_family = AF_INET;
 
- 	/* I want IP address attached to "eth0" */
+ 	/* I want IP address attached to "en1" */
 	strncpy(ifr.ifr_name, "en1", IFNAMSIZ-1);
 
 	ioctl(fd, SIOCGIFADDR, &ifr);
@@ -97,9 +97,9 @@ char * findMyIP2()
         	inet_pton(AF_INET, src3, &ip3);
         	_Bool areSame2 = !(ip2 ^ ip3);
 
-        	if ( !areSame && !areSame2) { //if they're different, print
-        		return addressBuffer;
-        		//printf("%s IP Address %s\n", ifa->ifa_name, addressBuffer);
+        	if ( !areSame && !areSame2 ) { //if they're different, print
+        		printf("%s IP Address %s\n", ifa->ifa_name, addressBuffer);
+        		return inet_ntoa(((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
         	}
         } 
         /*
@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
 	}
 
 	uint16_t myPort;
+	char * myIP2 = findMyIP2();
 	char * myIP = findMyIP();
 	long long tester = 1;
 	tester = tester << 32;
@@ -132,15 +133,15 @@ int main(int argc, char *argv[])
 		myPort = atoi(argv[1]);
    		//do n.join where i'm the only node
 		char * s2 = argv[1];
-		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
-		strcpy(toHash, myIP);
+		char * toHash = malloc(strlen(s2) + strlen(myIP2) + 1);
+		strcpy(toHash, myIP2);
 		strcat(toHash, s2);
 		uint32_t myHash = giveHash(toHash);
 		fprintf(stderr, "My Chord ID is: %u\n", myHash);
 		fprintf(stderr, "My port is: %d\n", myPort);
-		fprintf(stderr, "My IP is: %s\n", myIP);
-		fprintf(stderr, "Now running findMyIP2()\n");
-		findMyIP2();
+		fprintf(stderr, "My IP from findMyIP1 is: %s\n", myIP);
+		fprintf(stderr, "My IP from findMyIP2 is: %s\n", myIP2);
+
 		if (myHash < tester){
 			fprintf(stderr, "Still a uint32\n");
 		}

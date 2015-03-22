@@ -198,18 +198,18 @@
    *
    */
 
-uint32_t giveHash(char * preImage)
+   uint32_t giveHash(char * preImage)
    {
    	uint32_t image = 0;
-   	uint32_t intermediate = 0;
-   	
+
    	//get SHA-1 of preImage
    	size_t length = sizeof(preImage);
    	unsigned char hash[SHA_DIGEST_LENGTH];
    	SHA1(preImage, length, hash);
    	int i;
-   	for (i = 0; i < sizeof(hash); i+=4){
-   		intermediate = memcpy(&image, (void*) (hash+i), 4);
+   	for (i = 0; i < sizeof(preImage); i+=4){
+   		uint32_t intermediate;
+   		memcpy(&intermediate, (void*) (hash+i), 4);
    		image = image ^ intermediate;
    	}
    	return image;
@@ -266,13 +266,17 @@ uint32_t giveHash(char * preImage)
         	_Bool areSame2 = !(ip2 ^ ip3);
 
         	if ( !areSame && !areSame2) { //if they're different
-        		return addressBuffer;
-        }
-    } 
-}
-if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
-return 0;
-}
+        		return inet_ntoa(((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
+        	}
+    	} 
+	}
+	
+	if (ifAddrStruct!=NULL) {
+		freeifaddrs(ifAddrStruct);
+	}
+	
+	return 0;
+   }
 
 
 
@@ -291,7 +295,7 @@ return 0;
    		exit(1);
    	}
 
-	uint16_t myPort;
+   	uint16_t myPort;
    	char * myIP = findMyIP();
 
 
