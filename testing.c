@@ -44,9 +44,14 @@
 int main()
 {
 	printf("Program beginning \n");
-	printf("Let's find the Chord ID for the string: StupendousOhMyGodAwesomeCool\n");
-	char * our_string = "StupendousOhMyGodAwesomeCool";
+	printf("Let's find the Chord ID for the string: 192.154.34.23 8004\n");
+	char * our_string = "192.154.34.23 8004";
 	uint32_t chord_id = giveHash(our_string);
+	long long int tester = 1;
+	tester = tester << 32;
 	fprintf(stderr, "The Chord ID is: %u\n", chord_id);
+	if (chord_id < tester){
+		printf("it's an unsigned int\n");
+	}
 	return 0;
 }
