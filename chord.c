@@ -175,6 +175,21 @@
    } Pred_Reply_m;
 
 
+
+/* ========================================================================
+   ========================================================================
+		FUNCTION DECLARATIONS
+   ========================================================================
+   ========================================================================
+*/
+
+void *threadFactory(void* args);
+uint32_t giveHash(char * preImage);
+char * findMyIP();
+Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash);
+void initFingerTable(Finger_t * Fingers);
+
+
 /* ========================================================================
    ========================================================================
 		UTILITY FUNCTIONS
@@ -320,7 +335,9 @@
    *
    * Performs n.init_finger_table(n') from Figure 6 of Chord Paper
    *
-   * Needs: find_successor; update_entry; whois_your_predecessor;
+   * Verified to actually edit the finger table array back in main
+   *
+   * Needs: Accept(); rcv_search; find_successor; update_entry; whois_your_predecessor;
    *
    */
 
@@ -341,6 +358,7 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
 */
 	int i = 0;
 	for (i = 0; i <= 31; i++){
+		Fingers[i].node.pos = 35;
 		fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
 	}
    //return Fingers;
@@ -365,6 +383,11 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
 
    	uint16_t myPort = atoi(argv[1]);
    	char * myIP = findMyIP();
+
+   	int listenfd, connfd, clientlen, optval;
+   	struct sockaddr_in clientaddr;
+   	pthread_t tid;
+
    	Predecessor_t Predecessors[2];
 	Finger_t Fingers[32];   
 
@@ -421,10 +444,37 @@ void initFingerTable(Finger_t * Fingers){ //pass in finger table struct array by
    			Fingers[i].start = myself.pos + offset;
    		}
 
-   		//call initfingers
+   		//call initfingers - do we need to start listening before we call this?
+   		//maybe start a thread from main that goes to a function called "thread factory"
+   		//that handles our incoming connections?
+   		//could do that before we initialize pointers
    		initFingerTable(Fingers);
 
 
    	}
+
+/* ================================================================
+* START LISTENING ON MY PORT
+* =================================================================
+*/
+	listenfd = Open_listenfd(myPort);
+	optval = 1;
+	setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int)); 
+
+	while(1){
+		clientlen = sizeof(clientaddr);
+		connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+		if (connfd >= 0){
+			int *newargv = malloc(2 * sizeof(newargv));
+			newargv[0] = connfd;
+			newargv[1] = myPort;
+			Pthread_create(&tid, NULL, threadFactory, newargv);
+		}
+
+	}
+
+   }
+
+   void *threadFactory(void* args){
 
    }
