@@ -1,3 +1,9 @@
+newargv[0] = connfd; // int
+newargv[1] = myPort; // uint16_t
+newargv[2] = myself; // Node_id
+newargv[3] = Predecessors; // int, because it's a ptr
+newargv[4] = Fingers; // int, because it's a ptr
+
   
 /* ========================================================================
       BLANK_FINGER_TABLE_CONSTRUCTOR FUNCTION
@@ -24,22 +30,6 @@
       }
       return Fingers[32];
    }
-
-/* ========================================================================
-      INIT_FINGER_TABLE FUNCTION
-   ========================================================================
-*/
-   /*
-   *
-   * Performs n.init_finger_table(n') from Figure 6 of Chord Paper
-   *
-   *
-   *
-   */
-
-void initFingerTable(){
-   return;
-}
 
 
    char * findMyIP()

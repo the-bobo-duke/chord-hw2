@@ -83,12 +83,30 @@
 		//i is already "minus 1" because 0 <= i <= 31
 	}
 
+
+/* ========================================================================
+		PACKAGE STRUCT
+   ========================================================================
+*/
+   typedef struct Package_t {
+	int connfd;
+	uint16_t myPort;
+	Node_id myself;
+	Predecessor_t Predecessors[2];
+	Finger_t Fingers[32];
+   } Package_t;
+
+
+
+
 /* ========================================================================
    ========================================================================
 		CHORD MESSAGE STRUCTS
    ========================================================================
    ========================================================================
 */
+
+
 
 /* ========================================================================
 		KEEP_ALIVE STRUCT
@@ -476,10 +494,9 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 		clientlen = sizeof(clientaddr);
 		connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
 		if (connfd >= 0){
-			fprintf(stderr, "Accepted a connection\n");
-			int *newargv = malloc(2 * sizeof(newargv));
-			newargv[0] = connfd;
-			newargv[1] = myPort;
+			fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
+			int toMalloc = 3 * sizeof(int) + sizeof(uint16_t) + sizeof(Node_id);
+			Package_t *newargv = malloc(sizeof(Package_t));
 			Pthread_create(&tid, NULL, threadFactory, newargv);
 			Pthread_detach(tid); //frees tid so we can make the next thread
 		}
@@ -491,5 +508,6 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
    void *threadFactory(void* args){
    	fprintf(stderr, "In threadFactory\n");
+
 
    }
