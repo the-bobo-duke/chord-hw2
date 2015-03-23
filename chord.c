@@ -23,6 +23,8 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 
+#include <inttypes.h>
+
 #define MAX_HEADER 8192
 #define KEEP_ALIVE 0
 #define KEEP_ALIVE_ACK 1
@@ -92,8 +94,8 @@
 	int connfd;
 	uint16_t myPort;
 	Node_id myself;
-	Predecessor_t Predecessors[2];
-	Finger_t Fingers[32];
+	Predecessor_t* Predecessors;
+	Finger_t* Fingers;
    } Package_t;
 
 
@@ -201,7 +203,7 @@
    ========================================================================
 */
 
-void *threadFactory(void* args);
+void *threadFactory(Package_t args);
 uint32_t giveHash(char * preImage);
 char * findMyIP();
 Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash);
@@ -407,6 +409,7 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    	}
 
    	uint16_t myPort = atoi(argv[1]);
+   	uint32_t myHash;
    	char * myIP = findMyIP();
 
    	int listenfd, connfd, clientlen, optval;
@@ -415,6 +418,7 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
    	Predecessor_t Predecessors[2];
 	Finger_t Fingers[32];   
+	Node_id myself = nodeConstructor(myIP, myPort, myHash);
 
    	if (argc == 2) {
    		//do n.join where i'm the only node
@@ -424,11 +428,8 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
    		strcpy(toHash, myIP);
    		strcat(toHash, s2);
-   		uint32_t myHash = giveHash(toHash);
+   		myHash = giveHash(toHash);
    		fprintf(stderr, "My chord id is: %u\n", myHash);
-
-   		//make a Node_id of myself
-   		Node_id myself = nodeConstructor(myIP, myPort, myHash);
    		
    		//initialize Predecessors and Finger Table
    		Predecessors[1].pNode_id = myself;
@@ -454,12 +455,9 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
    		strcpy(toHash, myIP);
    		strcat(toHash, s2);
-   		uint32_t myHash = giveHash(toHash);
+   		myHash = giveHash(toHash);
 
    		fprintf(stderr, "My chord id is: %u\n", myHash);
-
-   		//make a Node_id of myself 
-   		Node_id myself = nodeConstructor(myIP, myPort, myHash);
 
    		//blank my fingers
    		int i;
@@ -497,6 +495,12 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 			fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
 			int toMalloc = 3 * sizeof(int) + sizeof(uint16_t) + sizeof(Node_id);
 			Package_t *newargv = malloc(sizeof(Package_t));
+			fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
+			newargv->connfd = connfd;
+			newargv->myPort = myPort;
+			newargv->myself = myself;
+			newargv->Predecessors = Predecessors;
+			newargv->Fingers = Fingers;
 			Pthread_create(&tid, NULL, threadFactory, newargv);
 			Pthread_detach(tid); //frees tid so we can make the next thread
 		}
@@ -505,9 +509,19 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
 	return 0; //exit main
    }
+/*
+typedef struct Package_t {
+	int connfd;
+	uint16_t myPort;
+	Node_id myself;
+	Predecessor_t Predecessors[2];
+	Finger_t Fingers[32];
+   } Package_t;*/
 
-   void *threadFactory(void* args){
+   void *threadFactory(Package_t args){
    	fprintf(stderr, "In threadFactory\n");
+   	fprintf(stderr, "The value of myPort is: %" PRIu16 "\n", args.myPort);
+   	fprintf(stderr, "The value of my conffd is: %d\n", args.connfd);
 
 
    }
