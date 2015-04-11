@@ -196,6 +196,25 @@
 
 
 
+
+
+/* ========================================================================
+   ========================================================================
+      GLOBAL VARIABLES
+   ========================================================================
+   ========================================================================
+*/
+
+
+
+Predecessor_t Predecessors[2];
+Finger_t Fingers[32];   
+Node_id myself;
+
+
+
+
+
 /* ========================================================================
    ========================================================================
       FUNCTION DECLARATIONS
@@ -207,7 +226,9 @@ void *threadFactory(int args[]);
 uint32_t giveHash(char * preImage);
 char * findMyIP();
 Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash);
-void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port);
+void initFingerTable(char * remote_IP, uint16_t remote_Port);
+
+
 
 
 /* ========================================================================
@@ -362,12 +383,18 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    *
    */
 
-void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port){ //pass in finger table struct array by reference
+void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger table struct array by reference
 
    // open connection to n-prime
-
+   //char * remote_IP_t = remote_IP;
+   //uint16_t remote_Port_t = remote_Port;
    int serverfd;
-   Open_clientfd(remote_IP, remote_Port); //Open_clientfd takes a char * for IP address
+   if ( Open_clientfd(remote_IP, remote_Port) >= 0); //Open_clientfd takes a char * for IP address
+      {
+         fprintf(stderr, "Successfully connected to: %s on %d\n", remote_IP, remote_Port);
+         fprintf(stderr, "Seeding my finger table by asking the above node for help\n");
+      }
+   
 
 
 /*
@@ -397,20 +424,6 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
 /* ========================================================================
    ========================================================================
-      GLOBAL VARIABLES
-   ========================================================================
-   ========================================================================
-*/
-
-
-
-Predecessor_t Predecessors[2];
-Finger_t Fingers[32];   
-Node_id myself;
-
-
-/* ========================================================================
-   ========================================================================
       MAIN FUNCTION
    ========================================================================
    ========================================================================
@@ -418,7 +431,8 @@ Node_id myself;
 
    int main(int argc, char *argv[])
    {
-      
+      //see GLOBAL VARIABLES for global variables declared ahead of main
+
       if (argc < 2) {
          printf("Usage: %s [local port] to start a new ring \nOR %s [local port] [IP Address] [remote port] to join\n", argv[0], argv[0]);
          exit(1);
@@ -488,10 +502,7 @@ Node_id myself;
          }
 
          //call initfingers - do we need to start listening before we call this?
-         //maybe start a thread from main that goes to a function called "thread factory"
-         //that handles our incoming connections?
-         //could do that before we initialize pointers
-         initFingerTable(Fingers, remote_IP, remote_Port);
+         initFingerTable(remote_IP, remote_Port);
 
 
       }
@@ -528,13 +539,6 @@ Node_id myself;
 
    void *threadFactory(int args[]){
       fprintf(stderr, "In threadFactory\n");
-      fprintf(stderr, "The value of myPort is: %d \n", args[1]);
-      //fprintf(stderr, "The value of myPort is: %" PRIu16 "\n", args[1]);
-      fprintf(stderr, "The value of my connfd is: %d\n", args[0]);
-      int i;
-      for (i = 0; i < 32; i++){
-         fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
-      }
 
       /*
          Need to while(1) for a message from the connected node
