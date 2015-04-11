@@ -405,7 +405,7 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    {
    	
    	if (argc < 2) {
-   		printf("Usage: %s port OR %s [IP Address] [remote port]\n", argv[0], argv[0]);
+   		printf("Usage: %s [local port] to start a new ring \nOR %s [local port] [IP Address] [remote port] to join\n", argv[0], argv[0]);
    		exit(1);
    	}
 
