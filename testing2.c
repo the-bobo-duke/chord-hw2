@@ -40,23 +40,23 @@
 
 
 /* ========================================================================
-      NODE_ID STRUCT
+		NODE_ID STRUCT
    ========================================================================
 */
    typedef struct Node_id {
-      char * ip; //IPv4 or IPv6 address in ASCII format. will need inet_addr() or inet_aton() to cast it
-      uint16_t port;
-      uint32_t pos; //position on our 32-bit ring
+   	char * ip; //IPv4 or IPv6 address in ASCII format. will need inet_addr() or inet_aton() to cast it
+   	uint16_t port;
+   	uint32_t pos; //position on our 32-bit ring
    } Node_id;
 
 
 
 /* ========================================================================
-      PREDECESSOR STRUCT
+		PREDECESSOR STRUCT
    ========================================================================
 */
    typedef struct Predecessor_t {
-      Node_id pNode_id; //holds a predecessor node
+   	Node_id pNode_id; //holds a predecessor node
    } Predecessor_t;
 /*
    on startup do: 
@@ -67,35 +67,35 @@
 
 
 /* ========================================================================
-      FINGER STRUCT
+		FINGER STRUCT
    ========================================================================
 */
    typedef struct Finger_t {
-      uint32_t start; //n + 2^(i-1) where 1 <= i <= 32 and i is the index of the finger
-                  //starting from 1, so 1st finger's i = 1
-      // interval: [finger[i].start, finger[i+1].start); if (key >= A && key < B) { this finger is responsible}
-      Node_id node;
+   	uint32_t start; //n + 2^(i-1) where 1 <= i <= 32 and i is the index of the finger
+   					//starting from 1, so 1st finger's i = 1
+   	// interval: [finger[i].start, finger[i+1].start); if (key >= A && key < B) { this finger is responsible}
+   	Node_id node;
    } Finger_t;
 /*
-   on startup do:
-   struct Finger_t Fingers[32];
-   for (int i = 0; i <= 31; i++){
-      Fingers[i].start = n + 2^(i); //write this without the ^ operator
-      //n is the pos of the current node
-      //i is already "minus 1" because 0 <= i <= 31
-   }
+	on startup do:
+	struct Finger_t Fingers[32];
+	for (int i = 0; i <= 31; i++){
+		Fingers[i].start = n + 2^(i); //write this without the ^ operator
+		//n is the pos of the current node
+		//i is already "minus 1" because 0 <= i <= 31
+	}
 
 
 /* ========================================================================
-      PACKAGE STRUCT -- not used, just made variables global instead
+		PACKAGE STRUCT -- not used, just made variables global instead
    ========================================================================
 */
    typedef struct Package_t {
-   int connfd;
-   uint16_t myPort;
-   Node_id myself;
-   Predecessor_t* Predecessors;
-   Finger_t* Fingers;
+	int connfd;
+	uint16_t myPort;
+	Node_id myself;
+	Predecessor_t* Predecessors;
+	Finger_t* Fingers;
    } Package_t;
 
 
@@ -103,7 +103,7 @@
 
 /* ========================================================================
    ========================================================================
-      CHORD MESSAGE STRUCTS
+		CHORD MESSAGE STRUCTS
    ========================================================================
    ========================================================================
 */
@@ -111,94 +111,94 @@
 
 
 /* ========================================================================
-      KEEP_ALIVE STRUCT
+		KEEP_ALIVE STRUCT
    ========================================================================
 */
    typedef struct Keep_Alive_m{
-      int mtype; //message type: KEEP_ALIVE or KEEP_ALIVE_ACK
+   	int mtype; //message type: KEEP_ALIVE or KEEP_ALIVE_ACK
    } Keep_Alive_m;
 
 /* ========================================================================
-      SEARCH_REQ STRUCT
+		SEARCH_REQ STRUCT
    ========================================================================
 */
-   typedef struct Search_Req_m{  
-      int mtype; //must be initialized to SRCH_REQ;
-      uint32_t key; // target key
+   typedef struct Search_Req_m{	
+   	int mtype; //must be initialized to SRCH_REQ;
+   	uint32_t key; // target key
    } Search_Req_m;
    
 /* ========================================================================
-      SEARCH_REPLY STRUCT
+		SEARCH_REPLY STRUCT
    ========================================================================
 */
    typedef struct Search_Reply_m{
-      int mtype; //must be initialized to SRCH_REPLY;
-      Node_id closest_pred;
-      Node_id my_successor;
+   	int mtype; //must be initialized to SRCH_REPLY;
+   	Node_id closest_pred;
+   	Node_id my_successor;
    } Search_Reply_m;
    //returns my closest predecessor to key k, which might be myself, and 
    //my successor
 
 /* ========================================================================
-      QUERY_CONN_REQ STRUCT
+		QUERY_CONN_REQ STRUCT
    ========================================================================
 */
    typedef struct Query_Conn_Req_m{
-      int mtype; //must be initialized to QUERY_CONN_REQ;
+   	int mtype; //must be initialized to QUERY_CONN_REQ;
    } Query_Conn_Req_m;
 
 /* ========================================================================
-      QUERY_REQ STRUCT
+		QUERY_REQ STRUCT
    ========================================================================
 */
    typedef struct Query_Req_m{
-      int mtype; //must be initialized to QUERY_REQ;
-      uint32_t key; // target key
+   	int mtype; //must be initialized to QUERY_REQ;
+   	uint32_t key; // target key
    } Query_Req_m;
 
 /* ========================================================================
-      QUERY_REPLY STRUCT
+		QUERY_REPLY STRUCT
    ========================================================================
 */
    typedef struct Query_Reply_m{
-      int mtype; //must be initialized to QUERY_REPLY;
-      uint32_t key; // the target key from Query_Req_m
-      Node_id responsible; // node responsible for key
+   	int mtype; //must be initialized to QUERY_REPLY;
+   	uint32_t key; // the target key from Query_Req_m
+   	Node_id responsible; // node responsible for key
    } Query_Reply_m;
 
 /* ========================================================================
-      UPDATE_ENTRY STRUCT
+		UPDATE_ENTRY STRUCT
    ========================================================================
 */
    typedef struct Update_Entry_m{
-      int mtype; // UPDATE_PRED or UPDATE_FING
-      Node_id new_node;
-      int finger_index; //0 to 31, which represents the finger 1 to 32
-                    //remember, The 32nd finger is has a start of n+2^31
+   	int mtype; // UPDATE_PRED or UPDATE_FING
+   	Node_id new_node;
+   	int finger_index; //0 to 31, which represents the finger 1 to 32
+   					  //remember, The 32nd finger is has a start of n+2^31
    } Update_Entry_m;
 
 /* ========================================================================
-      PRED_REQ STRUCT
+		PRED_REQ STRUCT
    ========================================================================
 */
    typedef struct Pred_Req_m{
-      int mtype; //must be initialized to PRED_REQ;
+   	int mtype; //must be initialized to PRED_REQ;
    } Pred_Req_m;
 
 /* ========================================================================
-      PRED_REPLY STRUCT
+		PRED_REPLY STRUCT
    ========================================================================
 */
    typedef struct Pred_Reply_m{
-      int mtype; //must be initialized to PRED_REPLY;
-      Node_id my_predecessor;
+   	int mtype; //must be initialized to PRED_REPLY;
+   	Node_id my_predecessor;
    } Pred_Reply_m;
 
 
 
 /* ========================================================================
    ========================================================================
-      FUNCTION DECLARATIONS
+		FUNCTION DECLARATIONS
    ========================================================================
    ========================================================================
 */
@@ -212,14 +212,14 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
 /* ========================================================================
    ========================================================================
-      UTILITY FUNCTIONS
+		UTILITY FUNCTIONS
    ========================================================================
    ========================================================================
 */
 
 
 /* ========================================================================
-      HASHING FUNCTION
+		HASHING FUNCTION
    ========================================================================
 */
    /*
@@ -238,25 +238,25 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
    uint32_t giveHash(char * preImage)
    {
-      uint32_t image = 0;
+   	uint32_t image = 0;
             //fprintf(stderr, "In giveHash, preImage is: %s\n", preImage);
-      //get SHA-1 of preImage
-      size_t length = strlen(preImage);
+   	//get SHA-1 of preImage
+   	size_t length = strlen(preImage);
             //fprintf(stderr, "In giveHash, length is: %zu\n", length);
-      unsigned char hash[SHA_DIGEST_LENGTH];
-      SHA1(preImage, length, hash);
-      int i;
-      for (i = 0; i < sizeof(preImage); i+=4){
-         uint32_t intermediate;
-         memcpy(&intermediate, (void*) (hash+i), 4);
-         image = image ^ intermediate;
-      }
-      return image;
+   	unsigned char hash[SHA_DIGEST_LENGTH];
+   	SHA1(preImage, length, hash);
+   	int i;
+   	for (i = 0; i < sizeof(preImage); i+=4){
+   		uint32_t intermediate;
+   		memcpy(&intermediate, (void*) (hash+i), 4);
+   		image = image ^ intermediate;
+   	}
+   	return image;
    }
 
 
 /* ========================================================================
-      FIND_MY_IP FUNCTION
+		FIND_MY_IP FUNCTION
    ========================================================================
 */
    /*
@@ -277,51 +277,51 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
    char * findMyIP()
    {
-      struct ifaddrs * ifAddrStruct=NULL;
-      struct ifaddrs * ifa=NULL;
-      void * tmpAddrPtr=NULL;
+   	struct ifaddrs * ifAddrStruct=NULL;
+   	struct ifaddrs * ifa=NULL;
+   	void * tmpAddrPtr=NULL;
 
-      getifaddrs(&ifAddrStruct);
+   	getifaddrs(&ifAddrStruct);
 
-      for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-         if (!ifa->ifa_addr) {
-            continue;
-         }
+   	for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+   		if (!ifa->ifa_addr) {
+   			continue;
+   		}
         if (ifa->ifa_addr->sa_family == AF_INET) { // check it is IP4
             // is a valid IP4 Address
-         tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-         char addressBuffer[INET_ADDRSTRLEN];
-         inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+        	tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+        	char addressBuffer[INET_ADDRSTRLEN];
+        	inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
 
-         uint32_t ip1 = *(uint32_t*) &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-         char * src2 = "127.0.0.1";
-         uint32_t ip2;
-         inet_pton(AF_INET, src2, &ip2);
-         _Bool areSame = !(ip1 ^ ip2);
+        	uint32_t ip1 = *(uint32_t*) &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+        	char * src2 = "127.0.0.1";
+        	uint32_t ip2;
+        	inet_pton(AF_INET, src2, &ip2);
+        	_Bool areSame = !(ip1 ^ ip2);
 
-         char * src3 = "0.0.0.0";
-         uint32_t ip3;
-         inet_pton(AF_INET, src3, &ip3);
-         _Bool areSame2 = !(ip2 ^ ip3);
+        	char * src3 = "0.0.0.0";
+        	uint32_t ip3;
+        	inet_pton(AF_INET, src3, &ip3);
+        	_Bool areSame2 = !(ip2 ^ ip3);
 
-         if ( !areSame && !areSame2) { //if they're different
-            return inet_ntoa(((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
-         }
-      } 
-   }
-   
-   if (ifAddrStruct!=NULL) {
-      freeifaddrs(ifAddrStruct);
-   }
+        	if ( !areSame && !areSame2) { //if they're different
+        		return inet_ntoa(((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
+        	}
+    	} 
+	}
+	
+	if (ifAddrStruct!=NULL) {
+		freeifaddrs(ifAddrStruct);
+	}
 
-   return 0;
+	return 0;
    }
 
 
 
 /* ========================================================================
    ========================================================================
-      HELPER FUNCTIONS
+		HELPER FUNCTIONS
    ========================================================================
    ========================================================================
 */
@@ -329,7 +329,7 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
 
 /* ========================================================================
-      NODE_CONSTRUCTOR FUNCTION
+		NODE_CONSTRUCTOR FUNCTION
    ========================================================================
 */
 
@@ -340,11 +340,11 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    */
 
    Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash){
-      Node_id node;
-      node.ip = ip;
-      node.port = port;
-      node.pos = hash;
-      return node;
+   	Node_id node;
+   	node.ip = ip;
+   	node.port = port;
+   	node.pos = hash;
+   	return node;
    }
 
 
@@ -364,31 +364,31 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
 void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port){ //pass in finger table struct array by reference
 
-   // open connection to n-prime
+	// open connection to n-prime
 
-   int serverfd;
-   Open_clientfd(remote_IP, remote_Port); //Open_clientfd takes a char * for IP address
+	int serverfd;
+	Open_clientfd(remote_IP, remote_Port); //Open_clientfd takes a char * for IP address
 
 
 /*
-   Fingers[0].node = ask n-prime to find_successor(Fingers[1].start);
-   set my predecessor to the predecessor of my successor;
-   tell my successor that i am its new predecessor;
-   int i;
-   for (i = 0; i <= 31; i++){
-      if (n <= Fingers[i+1].start < Fingers[i].node){
-         Fingers[i+1].node = Fingers[i].node;
-      }
-      else{
-         Fingers[i+1].node = ask n-prime to find_successor(Fingers[i+1].start);
-      }
-   }
+	Fingers[0].node = ask n-prime to find_successor(Fingers[1].start);
+	set my predecessor to the predecessor of my successor;
+	tell my successor that i am its new predecessor;
+	int i;
+	for (i = 0; i <= 31; i++){
+		if (n <= Fingers[i+1].start < Fingers[i].node){
+			Fingers[i+1].node = Fingers[i].node;
+		}
+		else{
+			Fingers[i+1].node = ask n-prime to find_successor(Fingers[i+1].start);
+		}
+	}
 */
-   int i = 0;
-   for (i = 0; i <= 31; i++){
-      Fingers[i].node.pos = 35;
-      //fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
-   }
+	int i = 0;
+	for (i = 0; i <= 31; i++){
+		Fingers[i].node.pos = 35;
+		//fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
+	}
    //return Fingers;
    //if not void, needs to return pointer to first element of array of structs
 }
@@ -411,137 +411,137 @@ Finger_t Fingers[32];
 
 /* ========================================================================
    ========================================================================
-      MAIN FUNCTION
+		MAIN FUNCTION
    ========================================================================
    ========================================================================
 */
 
    int main(int argc, char *argv[])
    {
-      
-      if (argc < 2) {
-         printf("Usage: %s [local port] to start a new ring \nOR %s [local port] [IP Address] [remote port] to join\n", argv[0], argv[0]);
-         exit(1);
-      }
+   	
+   	if (argc < 2) {
+   		printf("Usage: %s [local port] to start a new ring \nOR %s [local port] [IP Address] [remote port] to join\n", argv[0], argv[0]);
+   		exit(1);
+   	}
 
-      uint16_t myPort = atoi(argv[1]);
-      uint32_t myHash;
-      char * myIP = findMyIP();
+   	uint16_t myPort = atoi(argv[1]);
+   	uint32_t myHash;
+   	char * myIP = findMyIP();
 
-      int listenfd, connfd, clientlen, optval;
-      struct sockaddr_in clientaddr;
-      pthread_t tid;
+   	int listenfd, connfd, clientlen, optval;
+   	struct sockaddr_in clientaddr;
+   	pthread_t tid;
       Node_id myself;
 
-      if (argc == 2) {
-         //do n.join where i'm the only node
+   	if (argc == 2) {
+   		//do n.join where i'm the only node
 
 
-         //find my Chord ID
-         char * s2 = argv[1];
-         char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
-         strcpy(toHash, myIP);
-         strcat(toHash, s2);
-         myHash = giveHash(toHash);
+   		//find my Chord ID
+   		char * s2 = argv[1];
+   		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
+   		strcpy(toHash, myIP);
+   		strcat(toHash, s2);
+   		myHash = giveHash(toHash);
          myself = nodeConstructor(myIP, myPort, myHash);
 
-         fprintf(stderr, "My chord id is: %u\n", myHash);
+   		fprintf(stderr, "My chord id is: %u\n", myHash);
 
 
-         //initialize Predecessors and Finger Table
-         Predecessors[1].pNode_id = myself;
-         Predecessors[2].pNode_id = myself;
+   		//initialize Predecessors and Finger Table
+   		Predecessors[1].pNode_id = myself;
+   		Predecessors[2].pNode_id = myself;
 
-         int i;
-      for (i = 0; i <= 31; i++){
-            Fingers[i].node = myself;
-            uint32_t offset;
-            offset = 1 << i;
-            Fingers[i].start = myself.pos + offset; 
+   		int i;
+		for (i = 0; i <= 31; i++){
+				Fingers[i].node = myself;
+				uint32_t offset;
+				offset = 1 << i;
+				Fingers[i].start = myself.pos + offset; 
             //fprintf(stderr, "myself.pos is: %u, offset is: %u\n", myself.pos, offset);
             //fprintf(stderr, "Fingers[%d].start is: %u\n", i, Fingers[i].start);
-         }
+			}
 
-      }
+   	}
 
-      if (argc == 4){
-         char * remote_IP = argv[2];
-         uint16_t remote_Port = atoi(argv[3]);
-         //do n.join with a remote node
+   	if (argc == 4){
+   		char * remote_IP = argv[2];
+   		uint16_t remote_Port = atoi(argv[3]);
+   		//do n.join with a remote node
 
-         //find my Chord ID
-         char * s2 = argv[1]; // this is just our port
-         char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
-         strcpy(toHash, myIP);
-         strcat(toHash, s2);
-         myHash = giveHash(toHash);
+   		//find my Chord ID
+   		char * s2 = argv[1]; // this is just our port
+   		char * toHash = malloc(strlen(s2) + strlen(myIP) + 1);
+   		strcpy(toHash, myIP);
+   		strcat(toHash, s2);
+   		myHash = giveHash(toHash);
          myself = nodeConstructor(myIP, myPort, myHash);
 
-         fprintf(stderr, "My chord id is: %u\n", myHash);
+   		fprintf(stderr, "My chord id is: %u\n", myHash);
 
-         //blank my fingers
-         int i;
-         for (i = 0; i <= 31; i++){
-            uint32_t offset;
-            offset = 1 << i;
-            Fingers[i].start = myself.pos + offset;
-         }
+   		//blank my fingers
+   		int i;
+   		for (i = 0; i <= 31; i++){
+   			uint32_t offset;
+   			offset = 1 << i;
+   			Fingers[i].start = myself.pos + offset;
+   		}
 
-         //call initfingers - do we need to start listening before we call this?
-         //maybe start a thread from main that goes to a function called "thread factory"
-         //that handles our incoming connections?
-         //could do that before we initialize pointers
-         initFingerTable(Fingers, remote_IP, remote_Port);
+   		//call initfingers - do we need to start listening before we call this?
+   		//maybe start a thread from main that goes to a function called "thread factory"
+   		//that handles our incoming connections?
+   		//could do that before we initialize pointers
+   		initFingerTable(Fingers, remote_IP, remote_Port);
 
 
-      }
+   	}
 
-   /* ================================================================
-   * START LISTENING ON MY PORT
-   * =================================================================
-   */
-   listenfd = Open_listenfd(myPort);
-   optval = 1;
-   if ( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int)) < 0 ){
-      fprintf(stderr, "Error on line: %d\n", __LINE__);
-      perror("Error: ");
-      return -1;
-   }
+	/* ================================================================
+	* START LISTENING ON MY PORT
+	* =================================================================
+	*/
+	listenfd = Open_listenfd(myPort);
+	optval = 1;
+	if ( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int)) < 0 ){
+		fprintf(stderr, "Error on line: %d\n", __LINE__);
+		perror("Error: ");
+		return -1;
+	}
 
-   while(1){
-      clientlen = sizeof(clientaddr);
-      connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-      if (connfd >= 0){
-         fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
-         int toMalloc = 3 * sizeof(int) + sizeof(uint16_t) + sizeof(Node_id);
-         Package_t *newargv = malloc(sizeof(Package_t));
-         fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
-         newargv->connfd = connfd;
-         newargv->myPort = myPort;
-         newargv->myself = myself;
-         newargv->Predecessors = Predecessors;
-         newargv->Fingers = Fingers;
-         Pthread_create(&tid, NULL, threadFactory, newargv);
-         Pthread_detach(tid); //frees tid so we can make the next thread
-      }
+	while(1){
+		clientlen = sizeof(clientaddr);
+		connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+		if (connfd >= 0){
+			fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
+			int toMalloc = 3 * sizeof(int) + sizeof(uint16_t) + sizeof(Node_id);
+			Package_t *newargv = malloc(sizeof(Package_t));
+			fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
+			newargv->connfd = connfd;
+			newargv->myPort = myPort;
+			newargv->myself = myself;
+			newargv->Predecessors = Predecessors;
+			newargv->Fingers = Fingers;
+			Pthread_create(&tid, NULL, threadFactory, newargv);
+			Pthread_detach(tid); //frees tid so we can make the next thread
+		}
 
-   }
+	}
 
-   return 0; //exit main
+	return 0; //exit main
    }
 /*
 typedef struct Package_t {
-   int connfd;
-   uint16_t myPort;
-   Node_id myself;
-   Predecessor_t Predecessors[2];
-   Finger_t Fingers[32];
+	int connfd;
+	uint16_t myPort;
+	Node_id myself;
+	Predecessor_t Predecessors[2];
+	Finger_t Fingers[32];
    } Package_t;*/
 
    void *threadFactory(Package_t args){
-      fprintf(stderr, "In threadFactory\n");
-      fprintf(stderr, "The value of myPort is: %" PRIu16 "\n", args.myPort);
-      fprintf(stderr, "The value of my conffd is: %d\n", args.connfd);
+   	fprintf(stderr, "In threadFactory\n");
+   	fprintf(stderr, "The value of myPort is: %" PRIu16 "\n", args.myPort);
+   	fprintf(stderr, "The value of my conffd is: %d\n", args.connfd);
 
 
    }
