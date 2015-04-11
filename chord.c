@@ -530,11 +530,19 @@ Node_id myself;
       fprintf(stderr, "In threadFactory\n");
       fprintf(stderr, "The value of myPort is: %d \n", args[1]);
       //fprintf(stderr, "The value of myPort is: %" PRIu16 "\n", args[1]);
-      fprintf(stderr, "The value of my conffd is: %d\n", args[0]);
+      fprintf(stderr, "The value of my connfd is: %d\n", args[0]);
       int i;
       for (i = 0; i < 32; i++){
          fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
       }
+
+      /*
+         Need to while(1) for a message from the connected node
+         
+         Need to analyze what the message is asking for
+
+         And then serve the requested content
+      */
 
 
    }
