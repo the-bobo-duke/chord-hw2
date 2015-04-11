@@ -1,3 +1,5 @@
+
+
 int open_clientfd(char *hostname, int port)
 {
   int clientfd;
@@ -19,7 +21,25 @@ int open_clientfd(char *hostname, int port)
     return clientfd;
   }
 
+int toMalloc = 3 * sizeof(int) + sizeof(uint16_t) + sizeof(Node_id);
+         Package_t *newargv = malloc(sizeof(Package_t));
+         fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
+         newargv->connfd = connfd;
+         newargv->myPort = myPort;
+         newargv->myself = myself;
+         newargv->Predecessors = Predecessors;
+         newargv->Fingers = Fingers;
+         Pthread_create(&tid, NULL, threadFactory, newargv);
+         Pthread_detach(tid); //frees tid so we can make the next thread
 
+/*
+typedef struct Package_t {
+   int connfd;
+   uint16_t myPort;
+   Node_id myself;
+   Predecessor_t Predecessors[2];
+   Finger_t Fingers[32];
+   } Package_t;*/
 
 
 newargv[0] = connfd; // int

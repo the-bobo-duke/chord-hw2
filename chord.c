@@ -203,7 +203,7 @@
    ========================================================================
 */
 
-void *threadFactory(Package_t args);
+void *threadFactory(int args[]);
 uint32_t giveHash(char * preImage);
 char * findMyIP();
 Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash);
@@ -406,7 +406,7 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
 
 Predecessor_t Predecessors[2];
 Finger_t Fingers[32];   
-
+Node_id myself;
 
 
 /* ========================================================================
@@ -431,7 +431,7 @@ Finger_t Fingers[32];
       int listenfd, connfd, clientlen, optval;
       struct sockaddr_in clientaddr;
       pthread_t tid;
-      Node_id myself;
+      //Fingers, Predecessors, and myself are global variables
 
       if (argc == 2) {
          //do n.join where i'm the only node
@@ -513,14 +513,10 @@ Finger_t Fingers[32];
       connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
       if (connfd >= 0){
          fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
-         int toMalloc = 3 * sizeof(int) + sizeof(uint16_t) + sizeof(Node_id);
-         Package_t *newargv = malloc(sizeof(Package_t));
+         int newargv[2];
+         newargv[0] = connfd;
+         newargv[1] = myPort;
          fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
-         newargv->connfd = connfd;
-         newargv->myPort = myPort;
-         newargv->myself = myself;
-         newargv->Predecessors = Predecessors;
-         newargv->Fingers = Fingers;
          Pthread_create(&tid, NULL, threadFactory, newargv);
          Pthread_detach(tid); //frees tid so we can make the next thread
       }
@@ -529,19 +525,16 @@ Finger_t Fingers[32];
 
    return 0; //exit main
    }
-/*
-typedef struct Package_t {
-   int connfd;
-   uint16_t myPort;
-   Node_id myself;
-   Predecessor_t Predecessors[2];
-   Finger_t Fingers[32];
-   } Package_t;*/
 
-   void *threadFactory(Package_t args){
+   void *threadFactory(int args[]){
       fprintf(stderr, "In threadFactory\n");
-      fprintf(stderr, "The value of myPort is: %" PRIu16 "\n", args.myPort);
-      fprintf(stderr, "The value of my conffd is: %d\n", args.connfd);
+      fprintf(stderr, "The value of myPort is: %d \n", args[1]);
+      //fprintf(stderr, "The value of myPort is: %" PRIu16 "\n", args[1]);
+      fprintf(stderr, "The value of my conffd is: %d\n", args[0]);
+      int i;
+      for (i = 0; i < 32; i++){
+         fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
+      }
 
 
    }
