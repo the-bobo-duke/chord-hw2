@@ -239,9 +239,10 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    uint32_t giveHash(char * preImage)
    {
    	uint32_t image = 0;
-
+            //fprintf(stderr, "In giveHash, preImage is: %s\n", preImage);
    	//get SHA-1 of preImage
-   	size_t length = sizeof(preImage);
+   	size_t length = strlen(preImage);
+            //fprintf(stderr, "In giveHash, length is: %zu\n", length);
    	unsigned char hash[SHA_DIGEST_LENGTH];
    	SHA1(preImage, length, hash);
    	int i;
@@ -417,11 +418,12 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    	pthread_t tid;
 
    	Predecessor_t Predecessors[2];
-	Finger_t Fingers[32];   
-	Node_id myself = nodeConstructor(myIP, myPort, myHash);
+      Finger_t Fingers[32];   
+      Node_id myself = nodeConstructor(myIP, myPort, myHash);
 
    	if (argc == 2) {
    		//do n.join where i'm the only node
+
 
    		//find my Chord ID
    		char * s2 = argv[1];
@@ -430,6 +432,9 @@ void initFingerTable(Finger_t * Fingers, char * remote_IP, uint16_t remote_Port)
    		strcat(toHash, s2);
    		myHash = giveHash(toHash);
    		fprintf(stderr, "My chord id is: %u\n", myHash);
+
+         fprintf(stderr, "My argv[1] is: %s\n", s2);
+         fprintf(stderr, "My port is: %d\n", myPort);
    		
    		//initialize Predecessors and Finger Table
    		Predecessors[1].pNode_id = myself;
