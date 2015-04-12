@@ -164,6 +164,49 @@ uint32_t giveHash(char * preImage);
 char * findMyIP();
 Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash);
 void initFingerTable(char * remote_IP, uint16_t remote_Port);
+void updateOthers();
+void findSuccessor();
+
+
+/* ========================================================================
+   ========================================================================
+      LISTENER FUNCTIONS
+   ========================================================================
+   ========================================================================
+*/
+
+
+/* ========================================================================
+      FIND SUCCESSOR FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   * 
+   * F
+   * 
+   * 
+   * 
+   */
+
+
+
+/* ========================================================================
+      UPDATE OTHERS FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   * 
+   * Updates other nodes after a node has joined and seeded its finger table
+   * 
+   * 
+   * 
+   */
+
+   void updateOthers(){
+      return;
+   }
 
 
 
@@ -399,8 +442,8 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
          strcat(toHash, s2);
          myHash = giveHash(toHash);
          myself = nodeConstructor(myIP, myPort, myHash);
-
-         fprintf(stderr, "My chord id is: %u\n", myHash);
+         fprintf(stderr, "Starting a new ring\n");
+         fprintf(stderr, " My ip is: %s\n My port is: %u\n My chord id is: %u\n", myIP, myPort, myHash);
 
 
          //initialize Predecessors and Finger Table
@@ -408,7 +451,7 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
          Predecessors[2].pNode_id = myself;
 
          int i;
-      for (i = 0; i <= 31; i++){
+         for (i = 0; i <= 31; i++){
             Fingers[i].node = myself;
             uint32_t offset;
             offset = 1 << i;
@@ -432,7 +475,7 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
          myHash = giveHash(toHash);
          myself = nodeConstructor(myIP, myPort, myHash);
 
-         fprintf(stderr, "My chord id is: %u\n", myHash);
+         fprintf(stderr, " My ip is: %s\n My port is: %u\n My chord id is: %u\n", myIP, myPort, myHash);
 
          //blank my fingers
          int i;
@@ -442,9 +485,11 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
             Fingers[i].start = myself.pos + offset;
          }
 
-         //call initfingers - do we need to start listening before we call this?
+         //call initfingers 
          initFingerTable(remote_IP, remote_Port);
 
+         //call updateOthers
+         updateOthers();
 
       }
 
@@ -489,7 +534,38 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
          chord_msg cmsg;
          chord_msg * cmsg_ptr = &cmsg;
          memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
-         fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
+         //fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
+
+         // switch handler for various message types
+         switch(cmsg.mtype){
+            case KEEP_ALIVE :
+               break;
+            case KEEP_ALIVE_ACK :
+               break;
+            case SRCH_REQ :
+               findSuccessor();
+               break;
+            case SRCH_REPLY :
+               break;
+            case QUERY_CONN_REQ :
+               break;
+            case QUERY_REQ :
+               break;
+            case QUERY_REPLY :
+               break;
+            case UPDATE_PRED :
+               break;
+            case UPDATE_FING :
+               break;
+            case PRED_REQ :
+               break;
+            case PRED_REPLY :
+               break;
+            default :
+               fprintf(stderr, "Invalid message received at LINE:%d cmsg.mtype is: %d\n", __LINE__, cmsg.mtype);
+               break;
+         }
+         
       }
 
       // make a define like MAX_CMSG_LENGTH and use that for rio_readn
