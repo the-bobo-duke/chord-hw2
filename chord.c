@@ -26,7 +26,7 @@
 #include <inttypes.h>
 
 #define MAX_HEADER 8192
-#define KEEP_ALIVE 22
+#define KEEP_ALIVE 12
 #define KEEP_ALIVE_ACK 11
 #define SRCH_REQ 2
 #define SRCH_REPLY 3
@@ -37,6 +37,8 @@
 #define UPDATE_FING 10
 #define PRED_REQ 8
 #define PRED_REPLY 9
+#define SUCC_REQ 13
+#define SUCC_REPLY 14
 #define MAX_CMSG_LENGTH 80 // chord_msg is 64 bytes, upped to 80 just in case
 
 /* ========================================================================
@@ -95,7 +97,13 @@
 */
 
 /*
-   ********* Set unused fields to NULL before sending over the wire
+   *
+   *
+   * For SRCH_REQ's, the return value should specify closest_pred
+   * and successor should be the successor of closest_pred
+   *
+   *
+   *
 */
 
 typedef struct chord_msg{
@@ -163,9 +171,10 @@ void *threadFactory(int args[]);
 uint32_t giveHash(char * preImage);
 char * findMyIP();
 Node_id nodeConstructor(char * ip, uint16_t port, uint32_t hash);
-void initFingerTable(char * remote_IP, uint16_t remote_Port);
+void * initFingerTable(char * fargv[]);
 void updateOthers();
-void findSuccessor();
+Node_id findSuccessor(int args[]);
+Node_id whoisMySuccessor();
 
 
 /* ========================================================================
@@ -175,6 +184,22 @@ void findSuccessor();
    ========================================================================
 */
 
+/* ========================================================================
+      WHOIS MY SUCCESSOR FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   *
+   * Returns my successor
+   *
+   *
+   */
+
+   Node_id whoisMySuccessor(){
+      Node_id node = Fingers[0].node;
+      return node;
+   }
 
 /* ========================================================================
       FIND SUCCESSOR FUNCTION
@@ -183,13 +208,39 @@ void findSuccessor();
    /*
    *
    * 
-   * F
-   * 
-   * 
-   * 
+   * Finds successor of target_key iteratively
+   * Returns the closest_pred of target_key 
+   * Function that calls findSuccessor() must check to see if target_key
+   * is in (closest_pred, succ(closest_pred)] -- must request succ from closest_pred
+   *
+   *
    */
 
+   Node_id findSuccessor(int args[]){
+      fprintf(stderr, "In findSuccessor\n");
+      int connfd = args[0];
+      uint16_t myPort = args[1];
+      uint32_t target_key = args[2];
+   
+      // lock a mutex -- or should i just return something and not be a thread?
+      int i = 0;
+      for (i = 0; i <= 30; i++){
+         int A = Fingers[i].start;
+         int B = Fingers[i+1].start;
+         if (target_key >= A && target_key < B)
+            return Fingers[i].node;
+         else {
+            if (i == 30)
+               return Fingers[31].node;
+         }
+      }
 
+      // unlock mutex
+      // destroy mutex?
+      Node_id error;
+      error.port = 0;
+      return error; // some error must have happened
+   }
 
 /* ========================================================================
       UPDATE OTHERS FUNCTION
@@ -363,20 +414,25 @@ void findSuccessor();
    *
    */
 
-void initFingerTable(char * remote_IP, uint16_t remote_Port){ 
+void * initFingerTable(char * fargv[]){ 
 
    // open connection to n-prime
-
+   //char * remote_IP = fargv[0];
+   fprintf(stderr, "fargv[0]: %s\n", fargv[0]);
+   uint16_t remote_Port = atoi(fargv[1]);
+   fprintf(stderr, "remote_Port: %d\n", remote_Port);
    int serverfd;
-   serverfd = Open_clientfd(remote_IP, remote_Port);
+   serverfd = Open_clientfd(fargv[0], remote_Port);
+
    if ( serverfd < 0 )
       {
-         fprintf(stderr, "Failed to connect to %s:%d\nExiting\n", remote_IP, remote_Port);
+         fprintf(stderr, "Failed to connect to %s:%d\nExiting\n", fargv[0], remote_Port);
          exit(EXIT_FAILURE);
       }
-   fprintf(stderr, "Successfully connected to: %s on %d\n", remote_IP, remote_Port);
+   fprintf(stderr, "Successfully connected to: %s on %d\n", fargv[0], remote_Port);
+   sleep(3);
 
-   fprintf(stderr, "Seeding my finger table by asking %s:%d for help\n", remote_IP, remote_Port);
+   fprintf(stderr, "Seeding my finger table by asking %s:%d for help\n", fargv[0], remote_Port);
    
    //send chord_msg's for each Finger[i]
    int i;
@@ -416,6 +472,8 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
    int main(int argc, char *argv[])
    {
       //see GLOBAL VARIABLES for global variables declared ahead of main
+      
+      //int initFingerTable_flag;
 
       if (argc < 2) {
          printf("Usage: %s [local port] to start a new ring \nOR %s [local port] [IP Address] [remote port] to join\n", argv[0], argv[0]);
@@ -485,8 +543,13 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
             Fingers[i].start = myself.pos + offset;
          }
 
-         //call initfingers 
-         initFingerTable(remote_IP, remote_Port);
+
+         //call initFingerTable
+         char * fargv[2];
+         fargv[0] = argv[2];
+         fargv[1] = argv[3];
+         Pthread_create(&tid, NULL, initFingerTable, fargv);
+         Pthread_detach(tid); //frees tid so we can make the next thread
 
          //call updateOthers
          updateOthers();
@@ -508,6 +571,7 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
    while(1){
       clientlen = sizeof(clientaddr);
       connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+
       if (connfd >= 0){
          fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
          int newargv[2];
@@ -525,46 +589,136 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
 
    void *threadFactory(int args[]){
       fprintf(stderr, "In threadFactory\n");
+
       int connfd = args[0];
       uint16_t myPort = args[1];
-      int j = 0;
+      int newargv[3];
+         newargv[0] = connfd;
+         newargv[1] = myPort;
+         //newargv[2] = cmsg.target_key;
+
+      pthread_t tid;
+
+      chord_msg replyMsg = (chord_msg) { .mtype=999 };
+      fprintf(stderr, "Value of replyMsg.mtype is: %d \n", replyMsg.mtype);
+
+      //chord_msg * rMsg_ptr = &replyMsg;
+      
       while(1){
          char usrbuf[MAX_CMSG_LENGTH];
          rio_readn(connfd, usrbuf, MAX_CMSG_LENGTH);
          chord_msg cmsg;
          chord_msg * cmsg_ptr = &cmsg;
          memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
-         //fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
+
+         /* trash
+         char usrbuf3[MAX_CMSG_LENGTH];
+         Node_id result2;
+         chord_msg cmsg3 = (chord_msg){ .mtype = 999 };
+         chord_msg * cmsg_ptr3 = &cmsg3;
+         chord_msg cmsg2 = (chord_msg){ .mtype = SUCC_REPLY, .my_successor = NULL }; //.my_successor = result2 };
+         chord_msg * cmsg_ptr2 = &cmsg2;
+         */
+
+         //fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %u\n", cmsg.mtype, cmsg.target_key);
          
          // switch handler for various message types
          switch(cmsg.mtype){
+            case 999 :
+               fprintf(stderr, "Success, received a reply!\n");
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
+               break;
             case KEEP_ALIVE :
                break;
             case KEEP_ALIVE_ACK :
                break;
             case SRCH_REQ :
-               //spawn a thread to findSuccessor();
-               ++j;
-               fprintf(stderr, "Received SRCH_REQ #:%d\n", j);
+               fprintf(stderr, "In SRCH_REQ at line: %d\n", __LINE__);
+               int x = rio_writen(connfd, &replyMsg, MAX_CMSG_LENGTH);   
+               fprintf(stderr, "Value of x is: %d\n", x);
+                  /*
+               //findSuccessor();
+               newargv[2] = cmsg.target_key;
+               Node_id result = findSuccessor(newargv);
+               if (result.port == 0){
+                     fprintf(stderr, "Error on findSuccessor call line: %d, cmsg.target_key: %u\n", __LINE__, cmsg.target_key);
+                  }
+               else {
+                  // request successor of result node;
+                  char usrbuf2[MAX_CMSG_LENGTH];
+                  chord_msg cmsg2 = (chord_msg){ .mtype = SUCC_REPLY, .my_successor = result };
+                  chord_msg * cmsg_ptr2 = &cmsg2;
+                  rio_writen(connfd, cmsg_ptr2, MAX_CMSG_LENGTH);   
+                  // evaluate if target_key is >= result and < result.successor
+                  // if yes, then result is the answer
+                  // otherwise, run findSuccessor again on result node
+
+                  
+                  
+               }
+               */
+               //clear out cmsg
+               //cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
+               break;
+               
+            case SRCH_REPLY :
                //clear out cmsg
                cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
-            case SRCH_REPLY :
-               break;
             case QUERY_CONN_REQ :
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case QUERY_REQ :
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case QUERY_REPLY :
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case UPDATE_PRED :
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case UPDATE_FING :
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case PRED_REQ :
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case PRED_REPLY :
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
+               break;
+            case SUCC_REQ :
+               /*
+               result2 = whoisMySuccessor();
+               char usrbuf2[MAX_CMSG_LENGTH];
+               cmsg2.my_successor = result2;
+               rio_writen(connfd, cmsg_ptr2, MAX_CMSG_LENGTH);   
+               */
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
+               break;
+            case SUCC_REPLY :
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             default :
                // just continue listening
