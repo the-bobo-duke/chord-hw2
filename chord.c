@@ -94,6 +94,10 @@
    ========================================================================
 */
 
+/*
+   ********* Set unused fields to NULL before sending over the wire
+*/
+
 typedef struct chord_req{
    int mtype; // see #DEFINES at top for choices
    uint32_t target_key; //target_key for a search
@@ -306,14 +310,23 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
    //char * remote_IP_t = remote_IP;
    //uint16_t remote_Port_t = remote_Port;
    int serverfd;
-   if ( Open_clientfd(remote_IP, remote_Port) < 0 )
+   serverfd = Open_clientfd(remote_IP, remote_Port);
+   if ( serverfd < 0 )
       {
          fprintf(stderr, "Failed to connect to %s:%d\nExiting\n", remote_IP, remote_Port);
          exit(EXIT_FAILURE);
       }
    fprintf(stderr, "Successfully connected to: %s on %d\n", remote_IP, remote_Port);
-   fprintf(stderr, "Seeding my finger table by asking %s:%d for help\n", remote_IP, remote_Port);
 
+   fprintf(stderr, "Seeding my finger table by asking %s:%d for help\n", remote_IP, remote_Port);
+   
+   //send chord_req's for each Finger[i]
+   char usrbuf[MAX_CMSG_LENGTH];
+   chord_req * cmsg;
+   cmsg->mtype = SRCH_REQ;
+   cmsg->target_key = 0;
+   memcpy (&usrbuf, cmsg, sizeof(chord_req));
+   rio_writen(serverfd, cmsg, MAX_CMSG_LENGTH);
 
 /*
    Fingers[0].node = ask n-prime to find_successor(Fingers[1].start);
@@ -442,6 +455,11 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
       connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
       if (connfd >= 0){
          fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
+         
+         char usrbuf[MAX_CMSG_LENGTH];
+         rio_readn(connfd, usrbuf, MAX_CMSG_LENGTH);
+         fprintf(stderr, "Value of usrbuf: %s\n", usrbuf);
+
          int newargv[2];
          newargv[0] = connfd;
          newargv[1] = myPort;
@@ -457,10 +475,9 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
 
    void *threadFactory(int args[]){
       fprintf(stderr, "In threadFactory\n");
+      while (1){
 
-      // first, refactor message struct so that there's only one of it
-      // and it has an ID field, and UNION(all other fields)
-      // with fields it's not using set to NULL
+      }
 
       // make a define like MAX_CMSG_LENGTH and use that for rio_readn
       // so long as mtype is always the first int there we can just look for that
