@@ -380,10 +380,10 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
    
    //send chord_msg's for each Finger[i]
    int i;
-   for (i = 0; i < 31; i++){
+   for (i = 0; i <= 31; i++){
       chord_msg cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = Fingers[i].start, .finger_index = i };
       chord_msg * cmsg_ptr = &cmsg;
-      fprintf(stderr, "Requesting cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
+      //fprintf(stderr, "Requesting cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
       rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);   
    }
    
@@ -527,7 +527,7 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
       fprintf(stderr, "In threadFactory\n");
       int connfd = args[0];
       uint16_t myPort = args[1];
-
+      int j = 0;
       while(1){
          char usrbuf[MAX_CMSG_LENGTH];
          rio_readn(connfd, usrbuf, MAX_CMSG_LENGTH);
@@ -535,7 +535,7 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
          chord_msg * cmsg_ptr = &cmsg;
          memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
          //fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
-
+         
          // switch handler for various message types
          switch(cmsg.mtype){
             case KEEP_ALIVE :
@@ -543,7 +543,12 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
             case KEEP_ALIVE_ACK :
                break;
             case SRCH_REQ :
-               findSuccessor();
+               //spawn a thread to findSuccessor();
+               ++j;
+               fprintf(stderr, "Received SRCH_REQ #:%d\n", j);
+               //clear out cmsg
+               cmsg.mtype = 0; 
+               memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case SRCH_REPLY :
                break;
@@ -562,7 +567,7 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){
             case PRED_REPLY :
                break;
             default :
-               fprintf(stderr, "Invalid message received at LINE:%d cmsg.mtype is: %d\n", __LINE__, cmsg.mtype);
+               // just continue listening
                break;
          }
          
