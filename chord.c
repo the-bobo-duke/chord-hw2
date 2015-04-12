@@ -25,6 +25,8 @@
 
 #include <inttypes.h>
 
+#include <time.h>
+
 #define MAX_HEADER 8192
 #define KEEP_ALIVE 12
 #define KEEP_ALIVE_ACK 11
@@ -175,6 +177,7 @@ void * initFingerTable(char * fargv[]);
 void updateOthers();
 Node_id findSuccessor(int args[]);
 Node_id whoisMySuccessor();
+void ignore();
 
 
 /* ========================================================================
@@ -423,6 +426,7 @@ void * initFingerTable(char * fargv[]){
    fprintf(stderr, "remote_Port: %d\n", remote_Port);
    int serverfd;
    serverfd = Open_clientfd(fargv[0], remote_Port);
+   chord_msg * reply_ptr;
 
    if ( serverfd < 0 )
       {
@@ -430,7 +434,7 @@ void * initFingerTable(char * fargv[]){
          exit(EXIT_FAILURE);
       }
    fprintf(stderr, "Successfully connected to: %s on %d\n", fargv[0], remote_Port);
-   sleep(3);
+   //sleep(3);
 
    fprintf(stderr, "Seeding my finger table by asking %s:%d for help\n", fargv[0], remote_Port);
    
@@ -441,6 +445,10 @@ void * initFingerTable(char * fargv[]){
       chord_msg * cmsg_ptr = &cmsg;
       //fprintf(stderr, "Requesting cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
       rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);   
+      //nanosleep((struct timespec[]){{0, 500000000}}, NULL); // to wait for response
+      //fprintf(stderr, "After the nanosleep line: %d\n", __LINE__);
+      rio_readn(serverfd, reply_ptr, MAX_CMSG_LENGTH);
+      fprintf(stderr, "My reply mtype is: %d\n", reply_ptr->mtype);
    }
    
 /*
@@ -460,6 +468,15 @@ void * initFingerTable(char * fargv[]){
 
 }
 
+/* ========================================================================
+      IGNORE FUNCTION
+   ========================================================================
+*/
+
+   void ignore()
+   {
+     signal(SIGPIPE, SIG_IGN);
+  }
 
 
 /* ========================================================================
@@ -473,8 +490,14 @@ void * initFingerTable(char * fargv[]){
    {
       //see GLOBAL VARIABLES for global variables declared ahead of main
       
-      //int initFingerTable_flag;
-
+      sigset_t sig_pipe;
+      Signal(SIGPIPE, ignore);
+  
+      if(sigemptyset(&sig_pipe) || sigaddset(&sig_pipe, SIGPIPE))
+        unix_error("creating sig_pipe set failed");
+      if(sigprocmask(SIG_BLOCK, &sig_pipe, NULL) == -1)
+        unix_error("sigprocmask failed");
+  
       if (argc < 2) {
          printf("Usage: %s [local port] to start a new ring \nOR %s [local port] [IP Address] [remote port] to join\n", argv[0], argv[0]);
          exit(1);
@@ -569,6 +592,7 @@ void * initFingerTable(char * fargv[]){
    }
 
    while(1){
+      fprintf(stderr, "In listener, line: %d\n", __LINE__);
       clientlen = sizeof(clientaddr);
       connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
 
