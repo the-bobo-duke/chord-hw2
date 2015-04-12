@@ -26,8 +26,8 @@
 #include <inttypes.h>
 
 #define MAX_HEADER 8192
-#define KEEP_ALIVE 0
-#define KEEP_ALIVE_ACK 1
+#define KEEP_ALIVE 22
+#define KEEP_ALIVE_ACK 11
 #define SRCH_REQ 2
 #define SRCH_REPLY 3
 #define QUERY_CONN_REQ 4
@@ -98,6 +98,22 @@
    ********* Set unused fields to NULL before sending over the wire
 */
 
+typedef struct chord_msg{
+   int mtype; // see #DEFINES at top for choices
+   uint32_t target_key; //target_key for a search
+   Node_id closest_pred; //closest_pred to some searched-for key k OR my_predecessor if 
+                           // this is a Pred_Reply_m
+   Node_id my_successor; //my_successor for node responding to a search request
+   Node_id new_node; //for insertion into finger table if it's an update message
+   int finger_index; //where to insert the new_node
+} chord_msg;
+
+/*
+*
+*
+* The below messages have been collapsed into one "chord_msg" above
+*
+*
 typedef struct chord_req{
    int mtype; // see #DEFINES at top for choices
    uint32_t target_key; //target_key for a search
@@ -115,7 +131,7 @@ typedef struct chord_update{
    Node_id new_node;
    int finger_index; //where to insert the new_node
 } chord_update;
-
+*/
 
 
 
@@ -320,13 +336,11 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
 
    fprintf(stderr, "Seeding my finger table by asking %s:%d for help\n", remote_IP, remote_Port);
    
-   //send chord_req's for each Finger[i]
-   char usrbuf[MAX_CMSG_LENGTH];
-   chord_req * cmsg;
-   cmsg->mtype = SRCH_REQ;
-   cmsg->target_key = 0;
-   memcpy (&usrbuf, cmsg, sizeof(chord_req));
-   rio_writen(serverfd, cmsg, MAX_CMSG_LENGTH);
+   //send chord_msg's for each Finger[i]
+   chord_msg cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = 0 };
+   chord_msg * cmsg_ptr = &cmsg;
+   fprintf(stderr, "cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
+   rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);
 
 /*
    Fingers[0].node = ask n-prime to find_successor(Fingers[1].start);
@@ -458,7 +472,10 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
          
          char usrbuf[MAX_CMSG_LENGTH];
          rio_readn(connfd, usrbuf, MAX_CMSG_LENGTH);
-         fprintf(stderr, "Value of usrbuf: %s\n", usrbuf);
+         chord_msg cmsg;
+         chord_msg * cmsg_ptr = &cmsg;
+         memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
+         fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
 
          int newargv[2];
          newargv[0] = connfd;
@@ -475,9 +492,6 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
 
    void *threadFactory(int args[]){
       fprintf(stderr, "In threadFactory\n");
-      while (1){
-
-      }
 
       // make a define like MAX_CMSG_LENGTH and use that for rio_readn
       // so long as mtype is always the first int there we can just look for that
