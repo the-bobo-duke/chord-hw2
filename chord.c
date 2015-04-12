@@ -37,7 +37,7 @@
 #define UPDATE_FING 10
 #define PRED_REQ 8
 #define PRED_REPLY 9
-#define MAX_CMSG_LENGTH 80 // largest chord message is chord_reply at 40 bytes
+#define MAX_CMSG_LENGTH 80 // chord_msg is 64 bytes, upped to 80 just in case
 
 /* ========================================================================
       NODE_ID STRUCT
@@ -320,11 +320,10 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port);
    *
    */
 
-void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger table struct array by reference
+void initFingerTable(char * remote_IP, uint16_t remote_Port){ 
 
    // open connection to n-prime
-   //char * remote_IP_t = remote_IP;
-   //uint16_t remote_Port_t = remote_Port;
+
    int serverfd;
    serverfd = Open_clientfd(remote_IP, remote_Port);
    if ( serverfd < 0 )
@@ -337,11 +336,14 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
    fprintf(stderr, "Seeding my finger table by asking %s:%d for help\n", remote_IP, remote_Port);
    
    //send chord_msg's for each Finger[i]
-   chord_msg cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = 0 };
-   chord_msg * cmsg_ptr = &cmsg;
-   fprintf(stderr, "cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
-   rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);
-
+   int i;
+   for (i = 0; i < 31; i++){
+      chord_msg cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = Fingers[i].start, .finger_index = i };
+      chord_msg * cmsg_ptr = &cmsg;
+      fprintf(stderr, "Requesting cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
+      rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);   
+   }
+   
 /*
    Fingers[0].node = ask n-prime to find_successor(Fingers[1].start);
    set my predecessor to the predecessor of my successor;
@@ -356,13 +358,7 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
       }
    }
 */
-   int i = 0;
-   for (i = 0; i <= 31; i++){
-      Fingers[i].node.pos = 35;
-      //fprintf(stderr, "Value of Fingers[%d].start is: %u\n", i, Fingers[i].start);
-   }
-   //return Fingers;
-   //if not void, needs to return pointer to first element of array of structs
+
 }
 
 
@@ -469,14 +465,6 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
       connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
       if (connfd >= 0){
          fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
-         
-         char usrbuf[MAX_CMSG_LENGTH];
-         rio_readn(connfd, usrbuf, MAX_CMSG_LENGTH);
-         chord_msg cmsg;
-         chord_msg * cmsg_ptr = &cmsg;
-         memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
-         fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
-
          int newargv[2];
          newargv[0] = connfd;
          newargv[1] = myPort;
@@ -492,6 +480,17 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
 
    void *threadFactory(int args[]){
       fprintf(stderr, "In threadFactory\n");
+      int connfd = args[0];
+      uint16_t myPort = args[1];
+
+      while(1){
+         char usrbuf[MAX_CMSG_LENGTH];
+         rio_readn(connfd, usrbuf, MAX_CMSG_LENGTH);
+         chord_msg cmsg;
+         chord_msg * cmsg_ptr = &cmsg;
+         memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
+         fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
+      }
 
       // make a define like MAX_CMSG_LENGTH and use that for rio_readn
       // so long as mtype is always the first int there we can just look for that

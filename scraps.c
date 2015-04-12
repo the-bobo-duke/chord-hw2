@@ -1,4 +1,32 @@
 
+#define MAX_HEADER 8192
+#define KEEP_ALIVE 22
+#define KEEP_ALIVE_ACK 11
+#define SRCH_REQ 2
+#define SRCH_REPLY 3
+#define QUERY_CONN_REQ 4
+#define QUERY_REQ 5
+#define QUERY_REPLY 6
+#define UPDATE_PRED 7
+#define UPDATE_FING 10
+#define PRED_REQ 8
+#define PRED_REPLY 9
+#define MAX_CMSG_LENGTH 80 // chord_msg is 64 bytes, upped to 80 just in case
+
+
+
+typedef struct chord_msg{
+   int mtype; // see #DEFINES at top for choices
+   uint32_t target_key; //target_key for a search
+   Node_id closest_pred; //closest_pred to some searched-for key k OR my_predecessor if 
+                           // this is a Pred_Reply_m
+   Node_id my_successor; //my_successor for node responding to a search request
+   Node_id new_node; //for insertion into finger table if it's an update message
+   int finger_index; //where to insert the new_node
+} chord_msg;
+
+
+
 /* ========================================================================
       KEEP_ALIVE STRUCT
    ========================================================================
