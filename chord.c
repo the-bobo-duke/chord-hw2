@@ -37,7 +37,7 @@
 #define UPDATE_FING 10
 #define PRED_REQ 8
 #define PRED_REPLY 9
-
+#define MAX_CMSG_LENGTH 80 // largest chord message is chord_reply at 40 bytes
 
 /* ========================================================================
       NODE_ID STRUCT
@@ -86,20 +86,6 @@
    }
 
 
-/* ========================================================================
-      PACKAGE STRUCT -- not used, just made variables global instead
-   ========================================================================
-*/
-   typedef struct Package_t {
-   int connfd;
-   uint16_t myPort;
-   Node_id myself;
-   Predecessor_t* Predecessors;
-   Finger_t* Fingers;
-   } Package_t;
-
-
-
 
 /* ========================================================================
    ========================================================================
@@ -108,92 +94,23 @@
    ========================================================================
 */
 
+typedef struct chord_req{
+   int mtype; // see #DEFINES at top for choices
+   uint32_t target_key; //target_key for a search
+} chord_req;
 
+typedef struct chord_reply{
+   int mtype; // see #DEFINES at top for choices
+   Node_id closest_pred; //closest_pred to some searched-for key k OR my_predecessor if 
+                           // this is a Pred_Reply_m
+   Node_id my_successor;
+} chord_reply;
 
-/* ========================================================================
-      KEEP_ALIVE STRUCT
-   ========================================================================
-*/
-   typedef struct Keep_Alive_m{
-      int mtype; //message type: KEEP_ALIVE or KEEP_ALIVE_ACK
-   } Keep_Alive_m;
-
-/* ========================================================================
-      SEARCH_REQ STRUCT
-   ========================================================================
-*/
-   typedef struct Search_Req_m{  
-      int mtype; //must be initialized to SRCH_REQ;
-      uint32_t key; // target key
-   } Search_Req_m;
-   
-/* ========================================================================
-      SEARCH_REPLY STRUCT
-   ========================================================================
-*/
-   typedef struct Search_Reply_m{
-      int mtype; //must be initialized to SRCH_REPLY;
-      Node_id closest_pred;
-      Node_id my_successor;
-   } Search_Reply_m;
-   //returns my closest predecessor to key k, which might be myself, and 
-   //my successor
-
-/* ========================================================================
-      QUERY_CONN_REQ STRUCT
-   ========================================================================
-*/
-   typedef struct Query_Conn_Req_m{
-      int mtype; //must be initialized to QUERY_CONN_REQ;
-   } Query_Conn_Req_m;
-
-/* ========================================================================
-      QUERY_REQ STRUCT
-   ========================================================================
-*/
-   typedef struct Query_Req_m{
-      int mtype; //must be initialized to QUERY_REQ;
-      uint32_t key; // target key
-   } Query_Req_m;
-
-/* ========================================================================
-      QUERY_REPLY STRUCT
-   ========================================================================
-*/
-   typedef struct Query_Reply_m{
-      int mtype; //must be initialized to QUERY_REPLY;
-      uint32_t key; // the target key from Query_Req_m
-      Node_id responsible; // node responsible for key
-   } Query_Reply_m;
-
-/* ========================================================================
-      UPDATE_ENTRY STRUCT
-   ========================================================================
-*/
-   typedef struct Update_Entry_m{
-      int mtype; // UPDATE_PRED or UPDATE_FING
-      Node_id new_node;
-      int finger_index; //0 to 31, which represents the finger 1 to 32
-                    //remember, The 32nd finger is has a start of n+2^31
-   } Update_Entry_m;
-
-/* ========================================================================
-      PRED_REQ STRUCT
-   ========================================================================
-*/
-   typedef struct Pred_Req_m{
-      int mtype; //must be initialized to PRED_REQ;
-   } Pred_Req_m;
-
-/* ========================================================================
-      PRED_REPLY STRUCT
-   ========================================================================
-*/
-   typedef struct Pred_Reply_m{
-      int mtype; //must be initialized to PRED_REPLY;
-      Node_id my_predecessor;
-   } Pred_Reply_m;
-
+typedef struct chord_update{
+   int mtype; // see #DEFINES at top for choices
+   Node_id new_node;
+   int finger_index; //where to insert the new_node
+} chord_update;
 
 
 
@@ -389,12 +306,13 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
    //char * remote_IP_t = remote_IP;
    //uint16_t remote_Port_t = remote_Port;
    int serverfd;
-   if ( Open_clientfd(remote_IP, remote_Port) >= 0); //Open_clientfd takes a char * for IP address
+   if ( Open_clientfd(remote_IP, remote_Port) < 0 )
       {
-         fprintf(stderr, "Successfully connected to: %s on %d\n", remote_IP, remote_Port);
-         fprintf(stderr, "Seeding my finger table by asking the above node for help\n");
+         fprintf(stderr, "Failed to connect to %s:%d\nExiting\n", remote_IP, remote_Port);
+         exit(EXIT_FAILURE);
       }
-   
+   fprintf(stderr, "Successfully connected to: %s on %d\n", remote_IP, remote_Port);
+   fprintf(stderr, "Seeding my finger table by asking %s:%d for help\n", remote_IP, remote_Port);
 
 
 /*
@@ -527,7 +445,7 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
          int newargv[2];
          newargv[0] = connfd;
          newargv[1] = myPort;
-         fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
+         //fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
          Pthread_create(&tid, NULL, threadFactory, newargv);
          Pthread_detach(tid); //frees tid so we can make the next thread
       }
@@ -539,6 +457,14 @@ void initFingerTable(char * remote_IP, uint16_t remote_Port){ //pass in finger t
 
    void *threadFactory(int args[]){
       fprintf(stderr, "In threadFactory\n");
+
+      // first, refactor message struct so that there's only one of it
+      // and it has an ID field, and UNION(all other fields)
+      // with fields it's not using set to NULL
+
+      // make a define like MAX_CMSG_LENGTH and use that for rio_readn
+      // so long as mtype is always the first int there we can just look for that
+      // to i.d. the message type
 
       /*
          Need to while(1) for a message from the connected node

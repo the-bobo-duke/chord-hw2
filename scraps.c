@@ -1,4 +1,88 @@
 
+/* ========================================================================
+      KEEP_ALIVE STRUCT
+   ========================================================================
+*/
+   typedef struct Keep_Alive_m{
+      int mtype; //message type: KEEP_ALIVE or KEEP_ALIVE_ACK
+   } Keep_Alive_m;
+
+/* ========================================================================
+      SEARCH_REQ STRUCT
+   ========================================================================
+*/
+   typedef struct Search_Req_m{  
+      int mtype; //must be initialized to SRCH_REQ;
+      uint32_t key; // target key
+   } Search_Req_m;
+   
+/* ========================================================================
+      SEARCH_REPLY STRUCT
+   ========================================================================
+*/
+   typedef struct Search_Reply_m{
+      int mtype; //must be initialized to SRCH_REPLY;
+      Node_id closest_pred;
+      Node_id my_successor;
+   } Search_Reply_m;
+   //returns my closest predecessor to key k, which might be myself, and 
+   //my successor
+
+/* ========================================================================
+      QUERY_CONN_REQ STRUCT
+   ========================================================================
+*/
+   typedef struct Query_Conn_Req_m{
+      int mtype; //must be initialized to QUERY_CONN_REQ;
+   } Query_Conn_Req_m;
+
+/* ========================================================================
+      QUERY_REQ STRUCT
+   ========================================================================
+*/
+   typedef struct Query_Req_m{
+      int mtype; //must be initialized to QUERY_REQ;
+      uint32_t key; // target key
+   } Query_Req_m;
+
+/* ========================================================================
+      QUERY_REPLY STRUCT
+   ========================================================================
+*/
+   typedef struct Query_Reply_m{
+      int mtype; //must be initialized to QUERY_REPLY;
+      uint32_t key; // the target key from Query_Req_m
+      Node_id responsible; // node responsible for key
+   } Query_Reply_m;
+
+/* ========================================================================
+      UPDATE_ENTRY STRUCT
+   ========================================================================
+*/
+   typedef struct Update_Entry_m{
+      int mtype; // UPDATE_PRED or UPDATE_FING
+      Node_id new_node;
+      int finger_index; //0 to 31, which represents the finger 1 to 32
+                    //remember, The 32nd finger is has a start of n+2^31
+   } Update_Entry_m;
+
+/* ========================================================================
+      PRED_REQ STRUCT
+   ========================================================================
+*/
+   typedef struct Pred_Req_m{
+      int mtype; //must be initialized to PRED_REQ;
+   } Pred_Req_m;
+
+/* ========================================================================
+      PRED_REPLY STRUCT
+   ========================================================================
+*/
+   typedef struct Pred_Reply_m{
+      int mtype; //must be initialized to PRED_REPLY;
+      Node_id my_predecessor;
+   } Pred_Reply_m;
+
 
 int open_clientfd(char *hostname, int port)
 {
