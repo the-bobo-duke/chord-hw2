@@ -178,6 +178,8 @@ void updateOthers();
 Node_id findSuccessor(int args[]);
 Node_id whoisMySuccessor();
 void ignore();
+chord_msg * rpcWrapper(chord_msg cmsg, Node_id target_node);
+void rpcServer(chord_msg cmsg, Node_id target_node);
 
 
 /* ========================================================================
@@ -272,6 +274,73 @@ void ignore();
    ========================================================================
 */
 
+/* ========================================================================
+      RPC WRAPPER FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   * Handles network logic for chord_msg communication
+   *
+   * Sends a request, retrieves a response
+   * 
+   * Returns a chord_msg
+   * 
+   */
+
+chord_msg * rpcWrapper(chord_msg cmsg, Node_id target_node){
+   char usrbuf2[MAX_CMSG_LENGTH];
+   int resultfd;
+   chord_msg * reply_ptr = (chord_msg*) malloc(sizeof(chord_msg));
+   resultfd = Open_clientfd(target_node.ip, target_node.port);
+   if ( resultfd < 0 ){
+      fprintf(stderr, "Error connecting to target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
+      perror("perror output: ");
+   }
+
+   rio_writen(resultfd, &cmsg, MAX_CMSG_LENGTH);
+   if ( rio_readn(resultfd, reply_ptr, MAX_CMSG_LENGTH) < 0) {
+      fprintf(stderr, "Error reading from target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
+      perror("perror output: ");
+   }
+   Close(resultfd);
+   return reply_ptr;
+}
+
+
+
+/* ========================================================================
+      RPC SERVER FUNCTION
+   ========================================================================
+*/
+   /*
+   *
+   * Handles terminal response network logic for chord_msg,
+   * e.g., when a server has finished processing a request from a client
+   * and simply needs to return that value to the client.
+   *
+   * Sends a response
+   * 
+   * Does not return anything
+   * 
+   */
+
+void rpcServer(chord_msg cmsg, Node_id target_node){
+   char usrbuf2[MAX_CMSG_LENGTH];
+   int resultfd;
+   resultfd = Open_clientfd(target_node.ip, target_node.port);
+   if ( resultfd < 0 ){
+      fprintf(stderr, "Error connecting to target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
+      perror("perror output: ");
+   }
+
+   if ( rio_writen(resultfd, &cmsg, MAX_CMSG_LENGTH) < 0 ) {
+      fprintf(stderr, "Error writing to target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
+      perror("perror output: ");
+   }
+   
+   Close(resultfd);
+}
 
 /* ========================================================================
       HASHING FUNCTION
@@ -427,6 +496,7 @@ void * initFingerTable(char * fargv[]){
    int serverfd;
    serverfd = Open_clientfd(fargv[0], remote_Port);
    chord_msg * reply_ptr;
+   reply_ptr = (chord_msg*) malloc(sizeof(chord_msg));
 
    if ( serverfd < 0 )
       {
@@ -447,7 +517,11 @@ void * initFingerTable(char * fargv[]){
       rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);   
       //nanosleep((struct timespec[]){{0, 500000000}}, NULL); // to wait for response
       //fprintf(stderr, "After the nanosleep line: %d\n", __LINE__);
-      rio_readn(serverfd, reply_ptr, MAX_CMSG_LENGTH);
+      int x = rio_readn(serverfd, reply_ptr, MAX_CMSG_LENGTH);
+      if (x < 0){
+         perror("Error: ");
+      }
+      fprintf(stderr, "I read: %d many bytes\n", x);
       fprintf(stderr, "My reply mtype is: %d\n", reply_ptr->mtype);
    }
    
@@ -659,11 +733,11 @@ void * initFingerTable(char * fargv[]){
             case KEEP_ALIVE_ACK :
                break;
             case SRCH_REQ :
-               fprintf(stderr, "In SRCH_REQ at line: %d\n", __LINE__);
-               int x = rio_writen(connfd, &replyMsg, MAX_CMSG_LENGTH);   
-               fprintf(stderr, "Value of x is: %d\n", x);
-                  /*
-               //findSuccessor();
+               int x;
+               x = rio_writen(connfd, &replyMsg, MAX_CMSG_LENGTH);   
+               if (x < 0){
+                  perror("Error in case SRCH_REQ in switch: ");
+               }
                newargv[2] = cmsg.target_key;
                Node_id result = findSuccessor(newargv);
                if (result.port == 0){
@@ -671,10 +745,9 @@ void * initFingerTable(char * fargv[]){
                   }
                else {
                   // request successor of result node;
-                  char usrbuf2[MAX_CMSG_LENGTH];
-                  chord_msg cmsg2 = (chord_msg){ .mtype = SUCC_REPLY, .my_successor = result };
-                  chord_msg * cmsg_ptr2 = &cmsg2;
-                  rio_writen(connfd, cmsg_ptr2, MAX_CMSG_LENGTH);   
+                  chord_msg cmsg2 = (chord_msg){ .mtype = SUCC_REQ, .my_successor = result };
+                  chord_msg * reply_ptr = rpcWrapper(cmsg2, target_node);
+
                   // evaluate if target_key is >= result and < result.successor
                   // if yes, then result is the answer
                   // otherwise, run findSuccessor again on result node
@@ -682,7 +755,7 @@ void * initFingerTable(char * fargv[]){
                   
                   
                }
-               */
+               
                //clear out cmsg
                //cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
