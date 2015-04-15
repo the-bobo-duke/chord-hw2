@@ -284,7 +284,7 @@ void rpcServer(chord_msg cmsg, Node_id target_node);
    *
    * Sends a request, retrieves a response
    * 
-   * Returns a chord_msg
+   * Returns a chord_msg pointer
    * 
    */
 
@@ -664,15 +664,15 @@ void * initFingerTable(char * fargv[]){
       perror("Error: ");
       return -1;
    }
+   int newargv[2];
 
    while(1){
       fprintf(stderr, "In listener, line: %d\n", __LINE__);
       clientlen = sizeof(clientaddr);
       connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
 
-      if (connfd >= 0){
+      if (connfd < 0){
          fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
-         int newargv[2];
          newargv[0] = connfd;
          newargv[1] = myPort;
          //fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
@@ -693,12 +693,11 @@ void * initFingerTable(char * fargv[]){
       int newargv[3];
          newargv[0] = connfd;
          newargv[1] = myPort;
-         //newargv[2] = cmsg.target_key;
 
       pthread_t tid;
 
-      chord_msg replyMsg = (chord_msg) { .mtype=999 };
-      fprintf(stderr, "Value of replyMsg.mtype is: %d \n", replyMsg.mtype);
+      //chord_msg replyMsg = (chord_msg) { .mtype=999 };
+      //fprintf(stderr, "Value of replyMsg.mtype is: %d \n", replyMsg.mtype);
 
       //chord_msg * rMsg_ptr = &replyMsg;
       
@@ -708,6 +707,7 @@ void * initFingerTable(char * fargv[]){
          chord_msg cmsg;
          chord_msg * cmsg_ptr = &cmsg;
          memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
+         newargv[2] = cmsg.target_key;
 
          /* trash
          char usrbuf3[MAX_CMSG_LENGTH];
@@ -722,6 +722,16 @@ void * initFingerTable(char * fargv[]){
          
          // switch handler for various message types
          switch(cmsg.mtype){
+            //declare local variables for switch block
+            Node_id result_node;
+            Node_id result2;
+            Node_id target_node;
+            chord_msg cmsg2;
+            chord_msg * reply_ptr;
+            uint32_t A;
+            uint32_t B;
+            uint32_t target_key = cmsg2.target_key;
+            int newfd;
             case 999 :
                fprintf(stderr, "Success, received a reply!\n");
                //clear out cmsg
@@ -733,20 +743,26 @@ void * initFingerTable(char * fargv[]){
             case KEEP_ALIVE_ACK :
                break;
             case SRCH_REQ :
-               int x;
-               x = rio_writen(connfd, &replyMsg, MAX_CMSG_LENGTH);   
-               if (x < 0){
-                  perror("Error in case SRCH_REQ in switch: ");
-               }
-               newargv[2] = cmsg.target_key;
-               Node_id result = findSuccessor(newargv);
-               if (result.port == 0){
+               result_node = findSuccessor(newargv);
+               if (result_node.port == 0){
                      fprintf(stderr, "Error on findSuccessor call line: %d, cmsg.target_key: %u\n", __LINE__, cmsg.target_key);
                   }
                else {
                   // request successor of result node;
-                  chord_msg cmsg2 = (chord_msg){ .mtype = SUCC_REQ, .my_successor = result };
-                  chord_msg * reply_ptr = rpcWrapper(cmsg2, target_node);
+                  cmsg2 = (chord_msg){ .mtype = SUCC_REQ, .my_successor = result_node };
+                  reply_ptr = rpcWrapper(cmsg2, result_node);
+                  A = result_node.pos;
+                  B = reply_ptr->my_successor.pos;
+                  if (target_key >= A && target_key < B){
+                     //result is the answer
+                     fprintf(stderr, "This node (%u) is the answer \n", result_node.pos);
+                  }
+                  else{
+                     fprintf(stderr, "This node (%u) is not the answer, running findSuccessor again by asking %u: \n", result_node.pos, result_node.pos);
+                     // ask result_node to run findSuccessor using rpcWrapper
+                     cmsg2 = (chord_msg) { .mtype = SRCH_REQ, .target_key = target_key };
+                     reply_ptr = rpcWrapper(cmsg2, result_node);
+                  }
 
                   // evaluate if target_key is >= result and < result.successor
                   // if yes, then result is the answer
@@ -802,12 +818,10 @@ void * initFingerTable(char * fargv[]){
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case SUCC_REQ :
-               /*
                result2 = whoisMySuccessor();
-               char usrbuf2[MAX_CMSG_LENGTH];
-               cmsg2.my_successor = result2;
-               rio_writen(connfd, cmsg_ptr2, MAX_CMSG_LENGTH);   
-               */
+               cmsg2 = (chord_msg){ .mtype = SUCC_REPLY, .my_successor = result2 };
+               //maybe we should set the .mtype to something unspecified? will it matter?
+               rpcServer(cmsg2, result_node);
                //clear out cmsg
                cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
