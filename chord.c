@@ -299,7 +299,7 @@ chord_msg * rpcWrapper(chord_msg cmsg, Node_id target_node){
    }
 
    rio_writen(resultfd, &cmsg, MAX_CMSG_LENGTH);
-   if ( rio_readn(resultfd, reply_ptr, MAX_CMSG_LENGTH) < 0) {
+   if ( rio_readn(resultfd, reply_ptr, MAX_CMSG_LENGTH) < 0 ) {
       fprintf(stderr, "Error reading from target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
       perror("perror output: ");
    }
@@ -510,19 +510,25 @@ void * initFingerTable(char * fargv[]){
    
    //send chord_msg's for each Finger[i]
    int i;
+   chord_msg * finger_ptr = malloc(sizeof(chord_msg));
+   Node_id finger_req_node;
+   finger_req_node.ip = fargv[0];
+   finger_req_node.port = remote_Port;
+
    for (i = 0; i <= 31; i++){
       chord_msg cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = Fingers[i].start, .finger_index = i };
-      chord_msg * cmsg_ptr = &cmsg;
+      finger_ptr = rpcWrapper(cmsg, finger_req_node);
       //fprintf(stderr, "Requesting cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
-      rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);   
+      //rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);   
       //nanosleep((struct timespec[]){{0, 500000000}}, NULL); // to wait for response
       //fprintf(stderr, "After the nanosleep line: %d\n", __LINE__);
-      int x = rio_readn(serverfd, reply_ptr, MAX_CMSG_LENGTH);
-      if (x < 0){
-         perror("Error: ");
-      }
-      fprintf(stderr, "I read: %d many bytes\n", x);
-      fprintf(stderr, "My reply mtype is: %d\n", reply_ptr->mtype);
+      //int x = rio_readn(serverfd, reply_ptr, MAX_CMSG_LENGTH);
+      //if (x < 0){
+      //   perror("Error: ");
+      //}
+      //fprintf(stderr, "I read: %d many bytes\n", x);
+      fprintf(stderr, "Made it through one iteration of for loop\n");
+      fprintf(stderr, "My reply mtype is: %d\n", finger_ptr->mtype);
    }
    
 /*
