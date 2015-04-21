@@ -232,16 +232,21 @@ void rpcServer(chord_msg cmsg, Node_id target_node);
       for (i = 0; i <= 30; i++){
          int A = Fingers[i].start;
          int B = Fingers[i+1].start;
-         if (target_key >= A && target_key < B)
+         if (target_key >= A && target_key < B){
+            fprintf(stderr, "findSuccessor if line: %d\n", __LINE__);
             return Fingers[i].node;
+         }
          else {
-            if (i == 30)
+            if (i == 30){
+               fprintf(stderr, "findSuccessor else line: %d\n", __LINE__);
                return Fingers[31].node;
+            }
          }
       }
 
       // unlock mutex
       // destroy mutex?
+      fprintf(stderr, "In the error portion of findSuccessor line: %d\n", __LINE__);
       Node_id error;
       error.port = 0;
       return error; // some error must have happened
@@ -515,8 +520,9 @@ void * initFingerTable(char * fargv[]){
    finger_req_node.ip = fargv[0];
    finger_req_node.port = remote_Port;
 
-   for (i = 0; i <= 31; i++){
+   for (i = 0; i <= 0; i++){
       chord_msg cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = Fingers[i].start, .finger_index = i };
+      fprintf(stderr, "Asking for predecessor of target key: %u\n", cmsg.target_key);
       finger_ptr = rpcWrapper(cmsg, finger_req_node);
       //fprintf(stderr, "Requesting cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
       //rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);   
@@ -673,7 +679,7 @@ void * initFingerTable(char * fargv[]){
    int newargv[2];
 
    while(1){
-      fprintf(stderr, "In listener, line: %d\n", __LINE__);
+      //fprintf(stderr, "In listener, line: %d\n", __LINE__);
       clientlen = sizeof(clientaddr);
       connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
 
@@ -684,6 +690,7 @@ void * initFingerTable(char * fargv[]){
          //fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
          Pthread_create(&tid, NULL, threadFactory, newargv);
          Pthread_detach(tid); //frees tid so we can make the next thread
+         fprintf(stderr, "Successfully launched a thread, line: %d\n", __LINE__);
       }
       else if (connfd < 0){
          fprintf(stderr, "Failed to accept a connection on line: %d\n", __LINE__);
@@ -697,14 +704,14 @@ void * initFingerTable(char * fargv[]){
    void *threadFactory(int args[]){
       fprintf(stderr, "In threadFactory\n");
 
-      int connfd = args[0];
-      uint16_t myPort = args[1];
+      int connfd2 = args[0];
+      uint16_t myPort2 = args[1];
       int newargv[3];
-         newargv[0] = connfd;
-         newargv[1] = myPort;
+         newargv[0] = connfd2;
+         newargv[1] = myPort2;
 
-      pthread_t tid;
-
+      pthread_t tid2; 
+      fprintf(stderr, "In threadFactory: %d\n", __LINE__);
       //chord_msg replyMsg = (chord_msg) { .mtype=999 };
       //fprintf(stderr, "Value of replyMsg.mtype is: %d \n", replyMsg.mtype);
 
@@ -712,12 +719,12 @@ void * initFingerTable(char * fargv[]){
       
       while(1){
          char usrbuf[MAX_CMSG_LENGTH];
-         rio_readn(connfd, usrbuf, MAX_CMSG_LENGTH);
+         rio_readn(connfd2, usrbuf, MAX_CMSG_LENGTH);
          chord_msg cmsg;
          chord_msg * cmsg_ptr = &cmsg;
          memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
          newargv[2] = cmsg.target_key;
-
+         fprintf(stderr, "In threadFactory: %d\n", __LINE__);
          /* trash
          char usrbuf3[MAX_CMSG_LENGTH];
          Node_id result2;
@@ -731,6 +738,7 @@ void * initFingerTable(char * fargv[]){
          
          // switch handler for various message types
          switch(cmsg.mtype){
+            fprintf(stderr, "In threadFactory inside Switch: %d\n", __LINE__);
             //declare local variables for switch block
             Node_id result_node;
             Node_id result2;
@@ -744,7 +752,6 @@ void * initFingerTable(char * fargv[]){
             case 999 : //debug 
                fprintf(stderr, "Success, received a reply!\n");
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case KEEP_ALIVE :
@@ -778,8 +785,6 @@ void * initFingerTable(char * fargv[]){
                   // if yes, then result is the answer
                   // otherwise, run findSuccessor again on result node
 
-                  
-                  
                }
                
                //clear out cmsg
@@ -789,42 +794,34 @@ void * initFingerTable(char * fargv[]){
                
             case SRCH_REPLY :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case QUERY_CONN_REQ :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case QUERY_REQ :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case QUERY_REPLY :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case UPDATE_PRED :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case UPDATE_FING :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case PRED_REQ :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case PRED_REPLY :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case SUCC_REQ :
@@ -833,12 +830,10 @@ void * initFingerTable(char * fargv[]){
                //maybe we should set the .mtype to something unspecified? will it matter?
                rpcServer(cmsg2, result_node);
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case SUCC_REPLY :
                //clear out cmsg
-               cmsg.mtype = 0; 
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             default :
