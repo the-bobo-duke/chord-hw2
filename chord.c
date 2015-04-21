@@ -234,6 +234,8 @@ void rpcServer(chord_msg cmsg, Node_id target_node);
          int B = Fingers[i+1].start;
          if (target_key >= A && target_key < B){
             fprintf(stderr, "findSuccessor if line: %d\n", __LINE__);
+            fprintf(stderr, "Going to return node with position: %u\n", Fingers[i].node.pos);
+            fprintf(stderr, "My position is: %u\n", myself.pos);
             return Fingers[i].node;
          }
          else {
@@ -734,7 +736,7 @@ void * initFingerTable(char * fargv[]){
          chord_msg * cmsg_ptr2 = &cmsg2;
          */
 
-         //fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %u\n", cmsg.mtype, cmsg.target_key);
+         fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %u on line: %d\n", cmsg.mtype, cmsg.target_key, __LINE__);
          
          // switch handler for various message types
          switch(cmsg.mtype){
@@ -765,22 +767,35 @@ void * initFingerTable(char * fargv[]){
                      fprintf(stderr, "Error on findSuccessor call line: %d, cmsg.target_key: %u\n", __LINE__, cmsg.target_key);
                   }
                else {
-                  // request successor of result node;
-                  cmsg2 = (chord_msg){ .mtype = SUCC_REQ, .my_successor = result_node };
-                  reply_ptr = rpcWrapper(cmsg2, result_node);
                   A = result_node.pos;
-                  B = reply_ptr->my_successor.pos;
+                  // request successor of result node, so long as i am not already result_node
+                  if (result_node.pos != myself.pos){
+                     cmsg2 = (chord_msg){ .mtype = SUCC_REQ, .my_successor = result_node };
+                     reply_ptr = rpcWrapper(cmsg2, result_node);
+                     B = reply_ptr->my_successor.pos;
+                  }
+                  if (result_node.pos == myself.pos){
+                     //B = Fingers[1].node.pos; // this is my own successor
+                     // and I'm the answer, so i should just return myself
+                     fprintf(stderr, "I am the answer: %u Should insert a break here.\n", result_node.pos);
+                     cmsg2 = (chord_msg){ .mtype = SRCH_REPLY, .my_successor = myself };
+                     //need to send to connfd2 : myport2
+                     if ( rio_writen(connfd2, &cmsg2, MAX_CMSG_LENGTH) < 0 ) {
+                        fprintf(stderr, "Error writing to target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
+                        perror("perror output: ");
+                     }
+                     break;
+                  }
                   if (target_key >= A && target_key < B){
                      //result is the answer
                      fprintf(stderr, "This node (%u) is the answer \n", result_node.pos);
                   }
-                  else{
+                  else if (target_key < A && target_key >= B) {
                      fprintf(stderr, "This node (%u) is not the answer, running findSuccessor again by asking %u: \n", result_node.pos, result_node.pos);
                      // ask result_node to run findSuccessor using rpcWrapper
                      cmsg2 = (chord_msg) { .mtype = SRCH_REQ, .target_key = target_key };
                      reply_ptr = rpcWrapper(cmsg2, result_node);
                   }
-
                   // evaluate if target_key is >= result and < result.successor
                   // if yes, then result is the answer
                   // otherwise, run findSuccessor again on result node
@@ -834,6 +849,7 @@ void * initFingerTable(char * fargv[]){
                break;
             case SUCC_REPLY :
                //clear out cmsg
+               fprintf(stderr, "IN SUCC_REPLY\n");
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             default :
