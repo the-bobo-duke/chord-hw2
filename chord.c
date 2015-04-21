@@ -677,13 +677,16 @@ void * initFingerTable(char * fargv[]){
       clientlen = sizeof(clientaddr);
       connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
 
-      if (connfd < 0){
+      if (connfd > 0){
          fprintf(stderr, "Accepted a connection, line: %d\n", __LINE__);
          newargv[0] = connfd;
          newargv[1] = myPort;
          //fprintf(stderr, "Value of connfd before packaging is: %d\n", connfd);
          Pthread_create(&tid, NULL, threadFactory, newargv);
          Pthread_detach(tid); //frees tid so we can make the next thread
+      }
+      else if (connfd < 0){
+         fprintf(stderr, "Failed to accept a connection on line: %d\n", __LINE__);
       }
 
    }
@@ -738,7 +741,7 @@ void * initFingerTable(char * fargv[]){
             uint32_t B;
             uint32_t target_key = cmsg2.target_key;
             int newfd;
-            case 999 :
+            case 999 : //debug 
                fprintf(stderr, "Success, received a reply!\n");
                //clear out cmsg
                cmsg.mtype = 0; 
@@ -749,6 +752,7 @@ void * initFingerTable(char * fargv[]){
             case KEEP_ALIVE_ACK :
                break;
             case SRCH_REQ :
+               fprintf(stderr, "In SRCH_REQ on line: %d going to findSuccessor on target key: %u\n", __LINE__, newargv[2]);
                result_node = findSuccessor(newargv);
                if (result_node.port == 0){
                      fprintf(stderr, "Error on findSuccessor call line: %d, cmsg.target_key: %u\n", __LINE__, cmsg.target_key);
