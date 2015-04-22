@@ -726,17 +726,9 @@ void * initFingerTable(char * fargv[]){
          chord_msg * cmsg_ptr = &cmsg;
          memcpy(cmsg_ptr, usrbuf, sizeof(chord_msg));
          newargv[2] = cmsg.target_key;
-         fprintf(stderr, "In threadFactory: %d\n", __LINE__);
-         /* trash
-         char usrbuf3[MAX_CMSG_LENGTH];
-         Node_id result2;
-         chord_msg cmsg3 = (chord_msg){ .mtype = 999 };
-         chord_msg * cmsg_ptr3 = &cmsg3;
-         chord_msg cmsg2 = (chord_msg){ .mtype = SUCC_REPLY, .my_successor = NULL }; //.my_successor = result2 };
-         chord_msg * cmsg_ptr2 = &cmsg2;
-         */
+         //fprintf(stderr, "In threadFactory: %d\n", __LINE__);
 
-         fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %u on line: %d\n", cmsg.mtype, cmsg.target_key, __LINE__);
+         //fprintf(stderr, "Value of usrbuf cmsg.mtype: %d   cmsg.target_key: %u on line: %d\n", cmsg.mtype, cmsg.target_key, __LINE__);
          
          // switch handler for various message types
          switch(cmsg.mtype){
@@ -749,7 +741,7 @@ void * initFingerTable(char * fargv[]){
             chord_msg * reply_ptr;
             uint32_t A;
             uint32_t B;
-            uint32_t target_key = cmsg2.target_key;
+            uint32_t target_key = cmsg.target_key;
             int newfd;
             case 999 : //debug 
                fprintf(stderr, "Success, received a reply!\n");
@@ -777,18 +769,29 @@ void * initFingerTable(char * fargv[]){
                   if (result_node.pos == myself.pos){
                      //B = Fingers[1].node.pos; // this is my own successor
                      // and I'm the answer, so i should just return myself
-                     fprintf(stderr, "I am the answer: %u Should insert a break here.\n", result_node.pos);
-                     cmsg2 = (chord_msg){ .mtype = SRCH_REPLY, .my_successor = myself };
+                     fprintf(stderr, "I am the closest predecessor, will return my successor: %u.\n", Fingers[1].node.pos);
+                     cmsg2 = (chord_msg){ .mtype = SRCH_REPLY, .my_successor = Fingers[1].node };
                      //need to send to connfd2 : myport2
                      if ( rio_writen(connfd2, &cmsg2, MAX_CMSG_LENGTH) < 0 ) {
                         fprintf(stderr, "Error writing to target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
                         perror("perror output: ");
+                        exit(EXIT_FAILURE);
                      }
+                     memset(usrbuf, 0, MAX_CMSG_LENGTH);
                      break;
                   }
                   if (target_key >= A && target_key < B){
                      //result is the answer
                      fprintf(stderr, "This node (%u) is the answer \n", result_node.pos);
+                     cmsg2 = (chord_msg) { .mtype = SRCH_REPLY, .my_successor = result_node };
+                     //need to send to connfd2 : myport2
+                     if ( rio_writen(connfd2, &cmsg2, MAX_CMSG_LENGTH) < 0 ) {
+                        fprintf(stderr, "Error writing to target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
+                        perror("perror output: ");
+                        exit(EXIT_FAILURE);
+                     }
+                     memset(usrbuf, 0, MAX_CMSG_LENGTH);
+                     break;
                   }
                   else if (target_key < A && target_key >= B) {
                      fprintf(stderr, "This node (%u) is not the answer, running findSuccessor again by asking %u: \n", result_node.pos, result_node.pos);
@@ -796,10 +799,7 @@ void * initFingerTable(char * fargv[]){
                      cmsg2 = (chord_msg) { .mtype = SRCH_REQ, .target_key = target_key };
                      reply_ptr = rpcWrapper(cmsg2, result_node);
                   }
-                  // evaluate if target_key is >= result and < result.successor
-                  // if yes, then result is the answer
-                  // otherwise, run findSuccessor again on result node
-
+                  
                }
                
                //clear out cmsg
