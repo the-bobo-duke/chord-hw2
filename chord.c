@@ -522,21 +522,15 @@ void * initFingerTable(char * fargv[]){
    finger_req_node.ip = fargv[0];
    finger_req_node.port = remote_Port;
 
-   for (i = 0; i <= 0; i++){
-      chord_msg cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = Fingers[i].start, .finger_index = i };
-      fprintf(stderr, "Asking for predecessor of target key: %u\n", cmsg.target_key);
-      finger_ptr = rpcWrapper(cmsg, finger_req_node);
-      //fprintf(stderr, "Requesting cmsg.mtype: %d    cmsg.target_key: %d\n", cmsg.mtype, cmsg.target_key);
-      //rio_writen(serverfd, cmsg_ptr, MAX_CMSG_LENGTH);   
-      //nanosleep((struct timespec[]){{0, 500000000}}, NULL); // to wait for response
-      //fprintf(stderr, "After the nanosleep line: %d\n", __LINE__);
-      //int x = rio_readn(serverfd, reply_ptr, MAX_CMSG_LENGTH);
-      //if (x < 0){
-      //   perror("Error: ");
-      //}
-      //fprintf(stderr, "I read: %d many bytes\n", x);
-      fprintf(stderr, "Made it through one iteration of for loop\n");
-      fprintf(stderr, "My reply mtype is: %d\n", finger_ptr->mtype);
+   for (i = 0; i < 1; i++){
+      chord_msg finger_cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = Fingers[i].start, .finger_index = i };
+      fprintf(stderr, "Asking for predecessor of target key: %u\n", finger_cmsg.target_key);
+      finger_ptr = rpcWrapper(finger_cmsg, finger_req_node);
+      
+      fprintf(stderr, "Made it through iteration %d of for loop\n", i+1);
+      Fingers[i].node = finger_ptr->my_successor;
+      fprintf(stderr, "Updated Finger[%d].node.pos to: %u\n", Fingers[i].node.pos);
+      
    }
    
 /*
@@ -757,6 +751,7 @@ void * initFingerTable(char * fargv[]){
                result_node = findSuccessor(newargv);
                if (result_node.port == 0){
                      fprintf(stderr, "Error on findSuccessor call line: %d, cmsg.target_key: %u\n", __LINE__, cmsg.target_key);
+                     exit(EXIT_FAILURE);
                   }
                else {
                   A = result_node.pos;
@@ -809,6 +804,7 @@ void * initFingerTable(char * fargv[]){
                
             case SRCH_REPLY :
                //clear out cmsg
+               //for seeding Finger tables on n.join this is handled in initFingerTable()
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;
             case QUERY_CONN_REQ :
@@ -843,7 +839,12 @@ void * initFingerTable(char * fargv[]){
                result2 = whoisMySuccessor();
                cmsg2 = (chord_msg){ .mtype = SUCC_REPLY, .my_successor = result2 };
                //maybe we should set the .mtype to something unspecified? will it matter?
-               rpcServer(cmsg2, result_node);
+               //need to send to connfd2 : myport2
+                     if ( rio_writen(connfd2, &cmsg2, MAX_CMSG_LENGTH) < 0 ) {
+                        fprintf(stderr, "Error writing to target node %s on port %d on line %d: \n", target_node.ip, target_node.port, __LINE__);
+                        perror("perror output: ");
+                        exit(EXIT_FAILURE);
+                     }
                //clear out cmsg
                memset(usrbuf, 0, MAX_CMSG_LENGTH);
                break;

@@ -13,7 +13,7 @@
 #define PRED_REPLY 9
 #define MAX_CMSG_LENGTH 80 // chord_msg is 64 bytes, upped to 80 just in case
 
-
+gcc: -mmacosx-version-min=10.7 
 
 typedef struct chord_msg{
    int mtype; // see #DEFINES at top for choices
