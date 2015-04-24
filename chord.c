@@ -522,7 +522,7 @@ void * initFingerTable(char * fargv[]){
    finger_req_node.ip = fargv[0];
    finger_req_node.port = remote_Port;
 
-   for (i = 0; i < 1; i++){
+   for (i = 0; i <= 31; i++){
       chord_msg finger_cmsg = (chord_msg){ .mtype = SRCH_REQ, .target_key = Fingers[i].start, .finger_index = i };
       fprintf(stderr, "Asking for predecessor of target key: %u\n", finger_cmsg.target_key);
       finger_ptr = rpcWrapper(finger_cmsg, finger_req_node);
